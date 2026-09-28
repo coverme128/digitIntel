@@ -46,6 +46,15 @@ class ResearchTests(unittest.TestCase):
     def test_api_shape_and_cache(self):
         http=self.fake_ai();a=self.r.ai.generate('extract',{'documents':[]});b=self.r.ai.generate('extract',{'documents':[]})
         self.assertEqual(len(http.calls),1);self.assertTrue(b['cached']);self.assertEqual(a['artifact_id'],b['artifact_id']);body=http.calls[0][1]['body'];self.assertEqual(body['response_format'],{'type':'json_object'});self.assertNotIn('tools',body)
+    def test_unrequested_explanation_unit_rescaling_rejected(self):
+        self.enable()
+        http=FakeTransport(completion({'summary':'营收为1000百万美元','risks':[],'questions':[]}))
+        with self.assertRaises(DomainError):DeepSeek(self.s,http).generate('explain',{'facts':[{'value':1000,'unit':'USD'}]})
+        self.assertFalse(self.store.query('SELECT * FROM ai_artifacts'))
+    def test_extraction_unscaled_value_is_blocked(self):
+        candidate=copy.deepcopy(self.candidate);candidate['facts'][0]['value']=100
+        errors,_,_=self.r.validate_candidate(self.store.query('SELECT * FROM filings')[0],candidate)
+        self.assertTrue(any('无法对账' in e for e in errors))
     def test_empty_or_truncated_response_rejected(self):
         self.enable()
         for raw in ({}, {'choices':[{'finish_reason':'length','message':{'content':'{}'}}]}):
