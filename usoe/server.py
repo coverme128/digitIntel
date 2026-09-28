@@ -11,11 +11,13 @@ from urllib.parse import urlparse,parse_qs
 from .util import ROOT,canonical,DomainError,utcnow
 from .exports import markdown,csv_export
 from .sources import Sources,SourceUnavailable
+from .integrations.service import Integrations
+from .integrations.orders import BrokerOrders
 
 class AppServer(ThreadingHTTPServer):
     daemon_threads=True
     def __init__(self,address,service):
-        self.service=service;self.sources=Sources(service);self.sessions={}
+        self.service=service;self.sources=Sources(service);self.sessions={};self.integrations=Integrations(service);self.broker_orders=BrokerOrders(self.integrations)
         super().__init__(address,Handler)
 
 class Handler(BaseHTTPRequestHandler):
@@ -79,6 +81,8 @@ class Handler(BaseHTTPRequestHandler):
             sid=secrets.token_urlsafe(32);token=secrets.token_urlsafe(32);self.server.sessions[sid]=token
             return self.respond(200,{'csrf_token':token},headers={'Set-Cookie':f'usoe_session_{self.server.server_port}={sid}; HttpOnly; SameSite=Strict; Path=/'})
         if path.startswith('/api/') and not self.session():raise DomainError('Local session required','UNAUTHORIZED',401)
+        if path=='/api/v1/integrations':return self.respond(200,self.server.integrations.status())
+        if path=='/api/v1/broker/orders':return self.respond(200,{'items':self.server.broker_orders.list()})
         if path=='/api/v1/status':return self.respond(200,s.status())
         if path=='/api/v1/securities':return self.respond(200,s.store.query('SELECT * FROM securities ORDER BY ticker'))
         if path=='/api/v1/review-queue':return self.respond(200,[dict(r,data=json.loads(r['data_json'])) for r in s.store.query('SELECT * FROM review_queue ORDER BY created_at DESC')])
@@ -147,8 +151,20 @@ class Handler(BaseHTTPRequestHandler):
         if path=='/api/v1/securities':return self.respond(201,s.register(body['security'],body.get('universe','USER_WATCHLIST'),body.get('valid_from')))
         if path=='/api/v1/import':return self.respond(201,s.ingest(body['event'],body['market_snapshot']))
         if path=='/api/v1/sources/sec/sync':return self.respond(200,self.server.sources.sec_sync(body['security_id'],body.get('limit',5)))
-        if path=='/api/v1/sources/massive/bars':return self.respond(200,self.server.sources.massive_bars(body['symbol'],body['start'],body['end']))
-        if path=='/api/v1/sources/ibkr/sync':return self.respond(200,self.server.sources.ibkr_read())
+        if path=='/api/v1/sources/massive/bars':return self.respond(200,self.server.integrations.bars(body))
+        if path=='/api/v1/sources/ibkr/sync':return self.respond(200,self.server.integrations.sync_broker())
+        if path=='/api/v1/integrations/self-test':return self.respond(200,self.server.integrations.offline_check())
+        if path=='/api/v1/market/calculate':return self.respond(200,self.server.integrations.calculate_market(body))
+        if path=='/api/v1/market/outcomes':return self.respond(200,self.server.integrations.calculate_outcome(body))
+        if path=='/api/v1/broker/contracts/search':return self.respond(200,self.server.integrations.broker().candidates(body['symbol']))
+        if path=='/api/v1/broker/contracts/map':return self.respond(200,self.server.integrations.map_contract(body))
+        if path=='/api/v1/broker/position-plan':return self.respond(200,self.server.integrations.position_plan(body))
+        if path=='/api/v1/broker/keepalive':return self.respond(200,self.server.integrations.broker().keepalive())
+        if path=='/api/v1/broker/orders':return self.respond(201,self.server.broker_orders.create(body,key))
+        match=re.fullmatch(r'/api/v1/broker/orders/([\w-]+)/(preview|submit|reply|cancel|abandon)',path)
+        if match:return self.respond(200,self.server.broker_orders.act(match[1],match[2],body))
+        match=re.fullmatch(r'/api/v1/opportunities/([\w-]+)/market-sync',path)
+        if match:return self.respond(200,self.server.integrations.refresh_market(match[1]))
         if path=='/api/v1/order-intents':return self.respond(201,s.create_intent(body,key))
         match=re.fullmatch(r'/api/v1/opportunities/([\w-]+)/(watch|ignore|refresh)',path)
         if match:return self.respond(200,s.refresh(match[1],body.get('market_snapshot')) if match[2]=='refresh' else s.action(match[1],match[2]))

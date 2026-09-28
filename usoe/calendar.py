@@ -34,3 +34,17 @@ def trading_age(event_at, as_of, calendar):
     if b < a or not classify_session(event_at, calendar)['complete'] or not classify_session(as_of, calendar)['complete']:
         return None
     return sum(a < dt(s['close']) <= b for s in calendar['sessions'])
+
+
+def exchange_calendar(start, end):
+    """Versioned XNYS sessions, including historical exceptions and early closes."""
+    from datetime import date
+    from .util import DomainError
+    a,b=date.fromisoformat(start),date.fromisoformat(end)
+    if a>b or (b-a).days>730:raise DomainError('Calendar range must be ordered and at most 730 days')
+    try:
+        import exchange_calendars as xcals
+        exchange=xcals.get_calendar('XNYS',start=start,end=end)
+        sessions=[{'open':exchange.session_open(label).isoformat(),'close':exchange.session_close(label).isoformat()} for label in exchange.sessions_in_range(start,end)]
+        return {'start':start,'end':end,'source':'exchange_calendars/XNYS','version':xcals.__version__,'sessions':sessions}
+    except ImportError:raise DomainError('Install requirements-integrations.txt for the exchange calendar','DEPENDENCY_MISSING',409) from None

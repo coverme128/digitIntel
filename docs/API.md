@@ -109,3 +109,31 @@ POST `/import` 或 `python3 scripts/manage.py --db ... import packet.json`：
 JSON envelope：`export_version, exported_at, ai_mode, rule_version, source_snapshot, market_snapshot, portfolio_snapshot, core_output_hash, payload`。
 
 哈希算法为对去除 AI 字段后的 payload 做 key 排序、无多余空白、UTF-8 / 非 ASCII 不转义 JSON 序列化，然后 SHA-256。核心代码是 `usoe.util.canonical` 与 `usoe.exports.core_only`。导出时间和 ai_mode 属于 envelope，不参与核心哈希。
+
+
+## 集成 v2 API
+
+所有 POST 仍要求本机会话、同源 Origin、JSON 和 X-CSRF-Token。以下接口均不返回凭证；真实数据写入仅允许独立 shadow 工作区。
+
+| 方法 / 路径（`/api/v1` 前缀） | 作用 / 请求 |
+|---|---|
+| GET `/integrations` | 配置存在性、依赖、stream 状态、最近离线自检 |
+| POST `/integrations/self-test` | `{}`；无网络合成验收 |
+| POST `/sources/massive/bars` | `symbol,start,end,timespan?`；全部分页、未复权历史 bars |
+| POST `/market/calculate` | `security_id,event_at,as_of?,event_family?,cluster_start?`；自动行情窗口并存档，不创建未经证据核验的事件 |
+| POST `/opportunities/{id}/market-sync` | `{}`；依据原始事件拉取行情、存档并重算机会 |
+| POST `/market/outcomes` | `security_id,entry_at,entry_price,price_basis,as_of?,quantity?,exit_price?,fees?,planned_loss?,planned_entry?`；研究结果，计算口径见集成指南 |
+| POST `/sources/ibkr/sync` | `{}`；持仓、summary、ledger、挂单、执行对账，更新组合并重算机会 |
+| POST `/broker/keepalive` | `{}`；保持已有会话，不登录/抢占会话，不返回 session token |
+| POST `/broker/contracts/search` | `symbol`；IBKR 候选 conid，不自动选第一个 |
+| POST `/broker/contracts/map` | `security_id,conid`；远程核验 USD 股票后保存映射 |
+| POST `/broker/position-plan` | `security_id,invalidation_price,event_family`；保存计划后使旧组合失效，要求重新同步 |
+| GET `/broker/orders` | 独立券商纸面账本，区别于本地演示 order-intents |
+| POST `/broker/orders` | `side:BUY,opportunity_id,quantity,limit_price` 或 `side:SELL,security_id,quantity,limit_price,reason`；必须 Idempotency-Key，返回 DRAFT |
+| POST `/broker/orders/{id}/preview` | `confirmed:true`；纸面 what-if，返回 PREVIEWED 或 PREVIEW_FAILED |
+| POST `/broker/orders/{id}/submit` | `confirmed:true`；再次检查风险并持久预留，返回接单/警告/未知结果 |
+| POST `/broker/orders/{id}/reply` | `confirmed:true,reply_id`；显式接受当前显示的券商警告 |
+| POST `/broker/orders/{id}/cancel` | `confirmed:true`；取消请求，不把响应当成取消成交确认 |
+| POST `/broker/orders/{id}/abandon` | `confirmed:true`；只丢弃尚未提交的本地草稿 |
+
+重试同一 create 请求使用同一 Idempotency-Key。submit/reply/cancel 对同一已预留状态不会重新发请求；UNKNOWN 必须对账，不能通过改 key 自动重下。DAY/LMT/整数股数限定；live 账户拒绝。接口实现不代表 paper 账户验收已通过。

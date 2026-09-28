@@ -25,3 +25,7 @@ CREATE INDEX IF NOT EXISTS opportunities_state ON opportunities(state);
 CREATE INDEX IF NOT EXISTS events_security ON events(security_id);
 CREATE INDEX IF NOT EXISTS transitions_opportunity ON transitions(opportunity_id);
 CREATE INDEX IF NOT EXISTS evaluations_event ON evaluations(event_id);
+CREATE TABLE IF NOT EXISTS broker_tickets(id TEXT PRIMARY KEY, idempotency_key TEXT NOT NULL UNIQUE, request_hash TEXT NOT NULL, state TEXT NOT NULL, data_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS broker_receipts(id INTEGER PRIMARY KEY AUTOINCREMENT, ticket_id TEXT NOT NULL REFERENCES broker_tickets(id), kind TEXT NOT NULL, data_json TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS broker_executions(id TEXT PRIMARY KEY, ticket_id TEXT NOT NULL REFERENCES broker_tickets(id), data_json TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS integration_calculations(id TEXT PRIMARY KEY, kind TEXT NOT NULL, input_json TEXT NOT NULL, result_json TEXT NOT NULL, created_at TEXT NOT NULL);

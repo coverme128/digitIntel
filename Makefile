@@ -1,14 +1,18 @@
-.PHONY: demo run test check
+.PHONY: demo run test check integrations-test
+PYTHON ?= python3
 
 demo:
-	python3 -m usoe --demo
+	$(PYTHON) -m usoe --demo
 
 run:
-	python3 -m usoe
+	$(PYTHON) -m usoe
 
 test:
-	python3 -m unittest discover -s tests -v
+	$(PYTHON) -m unittest discover -s tests -v
 
 check:
-	python3 -m compileall -q usoe tests scripts
+	$(PYTHON) -m compileall -q usoe tests scripts
 	node --check web/app.js
+
+integrations-test:
+	.venv/bin/python -m unittest discover -s tests -v

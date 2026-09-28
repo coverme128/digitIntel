@@ -39,7 +39,7 @@ class HTTPTests(unittest.TestCase):
         status,_,b=self.request('/api/v1/opportunities/export?format=json&state=READY&q=NOVA',headers=h);self.assertEqual(status,200);self.assertEqual(len(json.loads(b)['payload']['items']),1)
     def test_all_routes(self):
         h=self.session()
-        for path in ('today','portfolio','history','opportunities','securities','review-queue','audit','outcomes','performance','events','status','order-intents'):
+        for path in ('today','portfolio','history','opportunities','securities','review-queue','audit','outcomes','performance','events','status','order-intents','integrations','broker/orders'):
             with self.subTest(path=path):self.assertEqual(self.request('/api/v1/'+path,headers=h)[0],200)
     def test_all_export_formats_and_scopes(self):
         h=self.session()
@@ -56,3 +56,10 @@ class HTTPTests(unittest.TestCase):
         _,_,b=self.request('/api/v1/opportunities/opp-nova-d/export',headers=h)
         self.assertEqual(json.loads(a)['core_output_hash'],json.loads(b)['core_output_hash'])
     def test_path_traversal_not_served(self):self.assertEqual(self.request('/../.env')[0],404)
+
+    def test_offline_integration_check_http(self):
+        h=self.session();status,_,body=self.request('/api/v1/integrations/self-test','POST',{},h)
+        self.assertEqual(status,200);r=json.loads(body);self.assertTrue(r['passed']);self.assertEqual(r['network_requests'],0)
+    def test_demo_cannot_sync_real_broker(self):
+        status,_,body=self.request('/api/v1/sources/ibkr/sync','POST',{},self.session())
+        self.assertEqual(status,409);self.assertEqual(json.loads(body)['code'],'WORKSPACE_MISMATCH')

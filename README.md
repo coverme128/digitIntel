@@ -6,7 +6,7 @@
 
 ## 启动
 
-只需 Python **3.11+**；应用运行不依赖 npm、LLM、数据库服务器或第三方 Python 包。
+基础演示只需 Python **3.11+**，不依赖 npm、LLM 或数据库服务器。完整行情日历和 WebSocket 使用 `requirements-integrations.txt` 中的可选依赖，见 [集成指南](docs/INTEGRATIONS.md)。
 
 ```bash
 cd /Users/goterra/Documents/digitIntel
@@ -33,7 +33,7 @@ python3 -m usoe --port 8788
 - 追溯标准化事实到归档原文、定位与 SHA-256；重放原始计算并核对输出哈希。
 - 演示模式中完成“草稿 → 二次确认 → 纸面成交 → MANAGE → 退出预览 → 确认 → EXITED”；保存 Thesis 与不可变结果账本。
 - 导出 JSON、Markdown、CSV；包含规则版本、快照、AI 模式和核心 SHA-256。无需 AI 即可交给其他分析工具使用。
-- 将 SEC 官方披露与 companyfacts 归档到待复核队列；使用 Massive 历史分钟行情和 IBKR 只读适配器。
+- 将 SEC 官方披露与 companyfacts 归档到待复核队列；使用 Massive 分页行情、WebSocket、日历/拆股/基准对齐计算和 IBKR 组合对账适配器。
 - 在本地开启 SEC 轮询，查看审计链、运行指标、备份及重放验证。
 
 ## 数据源配置
@@ -43,16 +43,18 @@ python3 -m usoe --port 8788
 ```dotenv
 SEC_USER_AGENT=USOpportunityEngine/1.0 contact your-email@example.com
 MASSIVE_API_KEY=
+MASSIVE_DATA_MODE=historical
 IBKR_BASE_URL=https://localhost:5000/v1/api
 IBKR_ACCOUNT_ID=
+IBKR_PAPER_ENABLED=false
 AI_MODE=off
 ```
 
 1. 在真实工作区“设置与数据源”注册证券代码、10 位 CIK、公司名及板块。
 2. 点击“同步最近披露”。SEC 返回的 ticker / CIK 必须一致；披露按 accession 去重，保存 accepted timestamp、原文与哈希。
 3. 披露进入“证据中心”的待复核队列。原始文本或 AI 文本不会直接变成机会；规范化事实包必须通过证据、数字、期间、单位、市场窗口校验。
-4. Massive 需要用户自己的数据订阅。当前适配器归档历史分钟数据；不会声称历史数据是实时数据，也不会凭缺失窗口生成 READY。
-5. IBKR 只读调用账户、持仓和摘要。Gateway 登录由用户完成；默认验证 TLS。如使用自建 CA，通过 `USOE_CA_BUNDLE=/absolute/path/ca.pem` 提供信任链，**不要关闭证书验证**。
+4. Massive 需要用户自己的数据订阅。支持分页行情、拆股调整、SPY/板块对齐、VWAP/同时间量比/收益计算和可选 AM/Q WebSocket；缺窗口或权限时阻断 READY。
+5. IBKR 同步账户、分页持仓、摘要、现金账本、订单与执行，并完成 conid/现金/净值/风险计划对账。纸面订单 API 已实现，默认关闭；真实资金提交关闭。Gateway 登录由用户完成；默认验证 TLS。如使用自建 CA，通过 `USOE_CA_BUNDLE=/absolute/path/ca.pem` 提供信任链，**不要关闭证书验证**。
 
 可选 SEC 定期抓取（最小间隔 60 秒，默认建议 300 秒；需有效配置与注册证券）：
 
@@ -61,6 +63,10 @@ python3 -m usoe --port 8788 --poll-sec 300
 ```
 
 轮询只更新数据和规则评估，不下单。公开 SEC 数据抓取仍可能被访问策略、代理或网络限制拒绝；失败显式标记 `DEGRADED`，不填充合成结果。
+
+## 无账户 API 自检
+
+在“设置 → API 对接与计算验收”点击“运行无账户自检”，无需凭证即可验证行情、组合风险和部分成交逻辑。接口与安装、账户验收步骤见 [Massive / IBKR 集成指南](docs/INTEGRATIONS.md)。
 
 ## 使用与开发
 
@@ -92,7 +98,7 @@ python3 scripts/manage.py --db data/demo.sqlite3 backup /tmp/usoe-backup.sqlite3
 ## 已冻结的边界
 
 - AI Off 完整保留核心规则与导出；AI Assist 未配置 provider 时显示 `AI_ASSIST_UNAVAILABLE`。当前不附带任何外部 AI 请求。
-- READY 不是自动买入。资金和风险计划必须经过显式二次确认；本版本仅允许隔离演示模式的本地模拟成交。
+- READY 不是自动买入。资金和风险计划必须经过显式二次确认；隔离演示的本地模拟与 IBKR 纸面 API 分开；后者必须配置、核验 paper 账户并逐次显式确认。真实资金提交关闭。
 - 无具体 subtype 规则的公司事件不得 READY；融资摊薄为 POSITION_RISK；M&A 为 CONTEXT_ONLY。
 - 不以模拟案例替代真实 Golden 100；不以一次回归代替 14 / 20 个交易日运行验证。
 - 每次正式规则升级需要新版本与迁移说明；不得覆盖旧计算或用未来数据重放历史。

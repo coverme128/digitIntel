@@ -6,3 +6,4 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 nav .mobile-settings{display:none}
 @media(max-width:720px){.brand{flex-shrink:0}nav{min-width:0;scrollbar-width:none}nav::-webkit-scrollbar{display:none}nav .mobile-settings{display:flex}.page-heading{flex-direction:column;align-items:stretch;gap:16px}.page-heading p{max-width:none}.page-heading>.actions{align-self:flex-start}.env-banner strong{white-space:nowrap;flex-shrink:0}.env-banner{align-items:flex-start}.env-banner span{line-height:1.8}.detail-top{flex-wrap:wrap;gap:8px}.aside-grid{grid-template-columns:1fr}.settings-grid .setting-row{align-items:flex-start;flex-direction:column}}
+.settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.settings-grid>*{min-width:0}.key-values dd{min-width:0;overflow-wrap:anywhere}@media(max-width:960px){.settings-grid{grid-template-columns:minmax(0,1fr)}}

@@ -10,14 +10,14 @@
 | Universe | CIK / ticker 冲突拦截，SEC 再校验；按日期生效的 SP500 / NASDAQ100 / USER_WATCHLIST 成员导入 | 不捏造当前或历史指数名单；需合法来源的成分数据 |
 | SEC | 合规 UA、请求节流、退避重试、submissions、primary document、companyfacts、accession 去重、accepted timestamp、不可变原文；可选轮询与持久任务记录 | 默认最近 5 份、最多 20 份，不是全历史补齐；独立展品索引抓取、全表单自动解析尚未完成。无法确定的事件进入 REVIEW_REQUIRED |
 | Canonical ingestion | 证据归属 / 时点、数值 token 与比例、单位注册、期间、fact version 校验；历史证据可与当前披露比较 | 非结构化语义需要用户复核；AI 候选不得直接晋升 canonical |
-| Massive | 已认证历史分钟 OHLCV 获取与原文保存；时间戳排序与空窗口检查，模式显式标记 | 未实现 WebSocket、完整分页补齐、企业行动调整、自动基准/板块对齐与实时行情持续校验。历史窗口不会假装完整实时窗口 |
+| Massive | 完整分页、OHLCV 检查、AM/Q WebSocket 认证/恢复、拆股时点调整、SPY/板块对齐、20 日同时间量比、VWAP、窗口收益 | 代码及模拟契约已验证；真实权限、停牌覆盖和持续行情验收待账户；盘前盘后不执行 |
 | Fundamental | 指引中值变化、利润率 bps、FCF、回购/市值、摊薄比例、交易价差、内部人集群 | 公司特有指标、完整 YoY/QoQ 加速度、跨报表复核仍需扩展注册与解析 |
-| Reaction | 原始 / SPY / 板块超额反应、量比、VWAP、gap、range；extended/adverse/caution；陈旧和延迟数据限制 | 完整交易所日历由输入提供，覆盖缺失时阻止 READY；不会用简单工作日冒充交易日 |
+| Reaction | XNYS 版本化日历、假日/DST/提前收市；原始/SPY/板块收益、量比/VWAP/gap/range 与 30m/close/next-open | 缺分钟不填补，历史/延迟不冒充实时；见 INTEGRATIONS.md 计算口径 |
 | Family rules | v1.0.1 materiality 分层、候选/风险/背景角色、各家族的入场条件与默认等待期限 | 8–15% 需要额外确认、EXTENDED override 和未知 corporate subtype 缺乏具体公式，保守阻止 READY；不擅自配置收益优化阈值 |
 | State machine | 合法边检查、显式用户入场、失效、忽略、持仓管理、退出；终态不自动复活 | 跨新披露自动关联已有 Thesis 的完整语义判别未实现；可用新版本事件和快照重新计算 |
-| Portfolio | 风险/集中度/现金/开放风险 sizing；陈旧、未知购买力、对账失败硬阻断；相关性/事件聚集警告输入 | IBKR 只读原始快照进入复核队列，完整 conid/security 自动对账与正式 paper broker 未验收 |
-| Execution | 隔离演示库里的草稿、二次确认、幂等、串行事务防重复、确认前重校验、取消、Thesis / 成交 / 退出记录 | 本地单次全成交模拟，不是券商 paper trading；部分成交、券商拒单、券商取消/成交对账、生产重新认证未实现。真实订单始终禁用 |
-| Outcome / learning | 不可变 entry/exit、净损益、费用、R 倍数、持有天数、family review 样本阈值 | 无价格路径时 MFE / MAE / 滑点 / 基准收益为 null，明确显示未采集；完整历史路径分析和家庭策略禁用工作流未验收 |
+| Portfolio | IBKR 分页持仓、现金账本与净值对账，conid 核验，持仓失效计划，风险/集中度/现金 sizing，失败即阻断 | 当前支持 USD 多头股票；其他币种/资产或未知成本风险需复核；实际账户未验收 |
+| Execution | 本地演示闭环；另有 IBKR paper 草稿/what-if/显式确认/警告回复/取消 API，持久防重、部分成交和执行对账账本 | API 实现与模拟测试完成，真实账户仍待验收；UI 可查看券商账本，券商持仓与机会状态/绩效的完整自动闭环仍未验收；live 禁用 |
+| Outcome / learning | 演示 entry/exit 净损益/费用/R；新增历史日线 1/5/10/20D、MFE/MAE、可确定基准收益/滑点的计算与存档 API | 日内入场当日极值排除；不含分红；不推测未知基准入场价；与真实券商学习库自动汇总待扩展 |
 | Historical analog | 家族匹配、禁止未来 outcome、样本不足提示、描述统计 | 高级公司/板块/趋势/估值匹配未完成；没有内置真实类比样本 |
 | AI independence | 纯函数核心不发出 AI 请求；AI fields 从输入核心哈希剔除；OFF/ASSIST 导出一致 | AI adapter UI 降级标记已实现，外部解释服务 / candidate extraction 持久管道未接入 |
 | Export | 单机会、today、watchlist、portfolio、events、outcomes、performance 的 JSON/Markdown/CSV；核心哈希与快照元信息，CSV 注入转义 | 导出仅本机授权会话可读；二次分发需先检查数据授权 |
@@ -45,3 +45,7 @@
 - IBKR paper 覆盖正常、拒单、取消、部分成交、重新对账与重复提交防护。
 - 数据许可 / 法务核验、外部告警与备份恢复演练完成。
 - 真实资金开关须由单独实现、复核和授权的版本引入；本仓库没有可提交真实订单的函数。
+
+## 集成 v2 补充
+
+详细配置、计算范围及账户待验收项以 [INTEGRATIONS.md](INTEGRATIONS.md) 为准。旧示例与旧 API 契约中关于“仅适配器骨架”的说明已被本节替代。

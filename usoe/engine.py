@@ -173,6 +173,7 @@ def risk_worksheet(security, family, market, portfolio, as_of, rules, quantity=N
     age=(dt(as_of)-dt(p['captured_at'])).total_seconds() if p.get('captured_at') else None
     if age is None or age<0 or age>rules['portfolio_max_age_seconds']: hard.append('DATA_BROKER_STALE')
     if p.get('reconciled') is not True: hard.append('RISK_BROKER_RECONCILIATION')
+    hard.extend(p.get('hard_blocks',[]))
     if p.get('buying_power') is None: hard.append('RISK_BUYING_POWER')
     if p.get('duplicate_order_uncertainty'): hard.append('RISK_DUPLICATE_ORDER')
     if market.get('halted'): hard.append('RISK_SECURITY_HALTED')
@@ -185,7 +186,8 @@ def risk_worksheet(security, family, market, portfolio, as_of, rules, quantity=N
         if pos.get('security_id')==security['security_id']: position_value+=v
         if pos.get('sector')==security['sector']: sector_value+=v
         if pos.get('event_family')==family: catalyst_value+=v
-        open_risk+=pos.get('planned_loss',0)
+        if pos.get('planned_loss',0) is None:hard.append('RISK_POSITION_PLAN_MISSING')
+        else:open_risk+=pos.get('planned_loss',0)
         if pos.get('security_id')!=security['security_id'] and pos.get('correlation_group') and pos.get('correlation_group')==security.get('correlation_group'): warnings.append('RISK_CORRELATED_HOLDINGS')
     if p.get('event_clustering'): warnings.append('RISK_EVENT_CLUSTERING')
     risk=rules['risk']; sizing=None
@@ -221,6 +223,7 @@ def evaluate(packet, market, portfolio, rules, as_of):
     evidence_ok=evidence_ok and all(x.get('evidence_id') in evidence_ids for x in packet.get('facts',[]))
     if f.get('contradiction'): quality_errors.append('EVIDENCE_CONTRADICTED')
     if market.get('ticker') != security['ticker']: quality_errors.append('DATA_SECURITY_MISMATCH')
+    if market.get('calculation_version')=='market-2':quality_errors.extend(market.get('quality_errors',[]))
     if not market.get('adjustment_consistent',False): quality_errors.append('DATA_ADJUSTMENT_UNKNOWN')
     if not session['complete'] or age is None: quality_errors.append('DATA_CALENDAR_INCOMPLETE')
     if dt(packet['event_at'])>dt(as_of): quality_errors.append('DATA_FUTURE_EVENT')
@@ -248,9 +251,9 @@ def evaluate(packet, market, portfolio, rules, as_of):
     opened=market.get('regular_open_at')
     gap_clear=bool(opened) and (dt(as_of)-dt(opened)).total_seconds()>=300
     common.append(('opening_guard',gap_clear,'开盘至少 5 分钟后确认'))
-    price=market.get('price',0); vwap=market.get('vwap',float('inf'))
-    reclaim=market.get('previous_price',float('inf'))<vwap<=price
-    breakout=price>market.get('event_high',float('inf')) and market.get('previous_price',0)>=market.get('anchor_price',float('inf')) and age is not None and age>=1
+    price=market.get('price') or 0; vwap=market.get('vwap') or float('inf')
+    reclaim=(market.get('previous_price') or float('inf'))<vwap<=price
+    breakout=price>(market.get('event_high') or float('inf')) and (market.get('previous_price') or 0)>=(market.get('anchor_price') or float('inf')) and age is not None and age>=1
     conditions=[]
     if family in ('GUIDANCE_CHANGE','EARNINGS_REVISION'):
         conditions=[('high_change',m['bucket'] in ('HIGH','VERY_HIGH'),'至少一项 HIGH 变化'),('price_vwap',price>=vwap,'价格站稳或收复事件 VWAP'),('volume',r.get('relative_volume',0)>=1.25,'相对成交量 ≥ 1.25×'),('sector',r.get('sector_return_pct',-100)>=rules['sector_strength_min_pct'],'板块相对强度未显著恶化')]

@@ -63,3 +63,12 @@ Massive 真实订阅、IBKR 实际账户会话没有提供；相应适配器通�
 ## 仍未通过的生产条件
 
 参见 `docs/IMPLEMENTATION.md`。真实 Golden 100、至少 20 个交易日 Shadow、券商 paper 全流程、实时窗口、授权核验和生产运营验收均未完成；因此状态保持 `PRODUCTION_BLOCKED`。
+
+## Massive / IBKR 集成 v2（2026-09-28）
+
+- `.venv/bin/python -m unittest discover -s tests -q`：**136 tests，全部通过**。包含 59 个新增集成/HTTP 检查；原有用例继续通过。
+- 重点：分页和恶意 next_url、凭证脱敏、日期范围、缺分钟、不完整 VWAP、延迟/过期报价、拆股时点、日历 DST/提前收市、真实形状账户响应到组合快照、部分/重复/冲突执行、纸面校验、无响应不重试、跨账户订单隔离、TLS 防降级与 GET 429 重试。
+- `make check`、`git diff --check` 通过。
+- 原演示库 7 个机会重放保持相同哈希；SQLite/外键/审计链检查通过。更新前备份 `/private/tmp/usoe-before-integrations-20260928.sqlite3`。
+- 在应用浏览器实际打开设置页并点击“运行无账户自检”：9 项通过，网络请求 0，VWAP=105、量比=2、板块超额=4%、风险容量=4 股、部分成交=2/5。全部数值为合成样例，不构成真实 API 验收。
+- 无 Massive Key / IBKR 账户，未对外发送任何订单。具体范围和仍需账户的检查见 `INTEGRATIONS.md`。

@@ -103,6 +103,7 @@ class Sources:
         return {'filings_archived':len(inserted),'items':inserted,'companyfacts_raw_id':frid,'status':'REVIEW_REQUIRED','message':'Raw SEC documents archived. No unverified trading opportunity was created.'}
 
     def massive_bars(self,symbol,start,end):
+        """Legacy import compatibility only. Application routes use integrations.MassiveClient."""
         key=os.environ.get('MASSIVE_API_KEY','')
         if not key:raise DomainError('Configure MASSIVE_API_KEY','SOURCE_NOT_CONFIGURED',409)
         if not re.fullmatch(r'[A-Z0-9.\-]{1,16}',symbol) or not all(re.fullmatch(r'\d{4}-\d{2}-\d{2}',d) for d in (start,end)):raise DomainError('Invalid symbol/date')
@@ -121,6 +122,7 @@ class Sources:
         return {'raw_document_id':rid,'sha256':sha,'adjusted':True,'data_mode':'historical','window_complete':False,'pagination_pending':bool(data.get('next_url')),'bars':rows,'note':'Historical bars only. Exchange calendar, benchmark/sector alignment and realtime freshness must be validated separately.'}
 
     def ibkr_read(self):
+        """Legacy unverified archive helper. Application routes use Integrations.sync_broker."""
         base=os.environ.get('IBKR_BASE_URL','https://localhost:5000/v1/api').rstrip('/')
         parsed=urllib.parse.urlparse(base)
         if parsed.scheme!='https' or parsed.hostname not in ('localhost','127.0.0.1','api.ibkr.com'):raise DomainError('IBKR must use TLS on an approved local gateway or api.ibkr.com')
