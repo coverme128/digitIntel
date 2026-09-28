@@ -11,6 +11,7 @@ def main():
     parser=argparse.ArgumentParser(description='US Opportunity Engine — local-only research and paper simulation')
     parser.add_argument('--demo',action='store_true',help='Use isolated fictional demo replay database')
     parser.add_argument('--port',type=int,default=int(os.environ.get('USOE_PORT','8787')))
+    parser.add_argument('--poll-research',type=int,metavar='SECONDS',help='Personal research polling, >=300 seconds; includes SEC, optional AI candidates and market refresh')
     parser.add_argument('--poll-sec',type=int,metavar='SECONDS',help='Opt-in SEC polling in shadow mode, minimum 60 seconds')
     parser.add_argument('--poll-integrations',type=int,metavar='SECONDS',help='Opt-in read-only Massive/IBKR polling, minimum 60 seconds')
     parser.add_argument('--stream-symbols',help='Optional comma-separated Massive AM/Q subscriptions; requires --poll-integrations')
@@ -31,7 +32,13 @@ def main():
         from .jobs import SECWorker
         try:worker=SECWorker(service,args.poll_sec)
         except ValueError as e:parser.error(str(e))
+    if args.poll_research and args.poll_sec:parser.error('--poll-research already includes SEC polling')
     server=AppServer(('127.0.0.1',args.port),service)
+    research_worker=None
+    if args.poll_research:
+        from .research import ResearchWorker
+        try:research_worker=ResearchWorker(server.research,args.poll_research)
+        except ValueError as e:parser.error(str(e))
     integration_worker=None
     if args.stream_symbols and not args.poll_integrations:parser.error('--stream-symbols requires --poll-integrations')
     if args.poll_integrations:
@@ -39,11 +46,13 @@ def main():
         try:integration_worker=IntegrationWorker(server.integrations,args.poll_integrations,args.stream_symbols.split(',') if args.stream_symbols else None)
         except Exception as e:parser.error(str(e))
     print(canonical({'event':'server_started','url':f'http://127.0.0.1:{args.port}','mode':mode,'status':'PRODUCTION_BLOCKED'}),flush=True)
+    if research_worker:research_worker.start()
     if worker:worker.start()
     if integration_worker:integration_worker.start()
     try:server.serve_forever()
     except KeyboardInterrupt:pass
     finally:
+        if research_worker:research_worker.stop()
         if worker:worker.stop()
         if integration_worker:integration_worker.stop()
         server.server_close()

@@ -137,3 +137,7 @@ JSON envelope：`export_version, exported_at, ai_mode, rule_version, source_snap
 | POST `/broker/orders/{id}/abandon` | `confirmed:true`；只丢弃尚未提交的本地草稿 |
 
 重试同一 create 请求使用同一 Idempotency-Key。submit/reply/cancel 对同一已预留状态不会重新发请求；UNKNOWN 必须对账，不能通过改 key 自动重下。DAY/LMT/整数股数限定；live 账户拒绝。接口实现不代表 paper 账户验收已通过。
+
+## 个人研究 / DeepSeek API
+
+新增 `/research`、偏好/更新/提取/复核/提醒和 `/ai/status`、机会解释接口，详见 [个人研究 API](PERSONAL-RESEARCH.md#新增-api)。这些接口不改变已有交易 READY 或核心导出哈希。

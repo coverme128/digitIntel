@@ -5,7 +5,7 @@ from contextlib import contextmanager, closing
 from pathlib import Path
 from .util import ROOT, canonical, digest, utcnow, DomainError
 
-IMMUTABLE = ('raw_documents','filings','evidence_spans','facts','events','market_snapshots','portfolio_snapshots','evaluations','transitions','outcomes','audit','broker_receipts','broker_executions','integration_calculations')
+IMMUTABLE = ('raw_documents','filings','evidence_spans','facts','events','market_snapshots','portfolio_snapshots','evaluations','transitions','outcomes','audit','broker_receipts','broker_executions','integration_calculations','ai_artifacts')
 
 class Store:
     def __init__(self, path):

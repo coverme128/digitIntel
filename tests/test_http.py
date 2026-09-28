@@ -39,7 +39,7 @@ class HTTPTests(unittest.TestCase):
         status,_,b=self.request('/api/v1/opportunities/export?format=json&state=READY&q=NOVA',headers=h);self.assertEqual(status,200);self.assertEqual(len(json.loads(b)['payload']['items']),1)
     def test_all_routes(self):
         h=self.session()
-        for path in ('today','portfolio','history','opportunities','securities','review-queue','audit','outcomes','performance','events','status','order-intents','integrations','broker/orders'):
+        for path in ('today','portfolio','history','opportunities','securities','review-queue','audit','outcomes','performance','events','status','order-intents','integrations','broker/orders','research','ai/status'):
             with self.subTest(path=path):self.assertEqual(self.request('/api/v1/'+path,headers=h)[0],200)
     def test_all_export_formats_and_scopes(self):
         h=self.session()
@@ -63,3 +63,15 @@ class HTTPTests(unittest.TestCase):
     def test_demo_cannot_sync_real_broker(self):
         status,_,body=self.request('/api/v1/sources/ibkr/sync','POST',{},self.session())
         self.assertEqual(status,409);self.assertEqual(json.loads(body)['code'],'WORKSPACE_MISMATCH')
+
+    def test_research_read_keeps_core_hash_unchanged(self):
+        h=self.session();_,_,before=self.request('/api/v1/opportunities/opp-nova-d/export',headers=h)
+        code,_,body=self.request('/api/v1/research',headers=h);self.assertEqual(code,200);self.assertTrue(json.loads(body)['items'])
+        _,_,after=self.request('/api/v1/opportunities/opp-nova-d/export',headers=h)
+        self.assertEqual(json.loads(before)['core_output_hash'],json.loads(after)['core_output_hash'])
+    def test_ai_status_never_returns_secret(self):
+        from unittest.mock import patch
+        h=self.session()
+        with patch.dict('os.environ',{'DEEPSEEK_API_KEY':'never-expose-this-key'}):
+            code,_,body=self.request('/api/v1/ai/status',headers=h)
+        self.assertEqual(code,200);self.assertNotIn(b'never-expose-this-key',body)

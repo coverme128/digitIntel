@@ -13,11 +13,12 @@ from .exports import markdown,csv_export
 from .sources import Sources,SourceUnavailable
 from .integrations.service import Integrations
 from .integrations.orders import BrokerOrders
+from .research import Research
 
 class AppServer(ThreadingHTTPServer):
     daemon_threads=True
     def __init__(self,address,service):
-        self.service=service;self.sources=Sources(service);self.sessions={};self.integrations=Integrations(service);self.broker_orders=BrokerOrders(self.integrations)
+        self.service=service;self.sources=Sources(service);self.sessions={};self.integrations=Integrations(service);self.broker_orders=BrokerOrders(self.integrations);self.research=Research(service,self.integrations)
         super().__init__(address,Handler)
 
 class Handler(BaseHTTPRequestHandler):
@@ -81,6 +82,8 @@ class Handler(BaseHTTPRequestHandler):
             sid=secrets.token_urlsafe(32);token=secrets.token_urlsafe(32);self.server.sessions[sid]=token
             return self.respond(200,{'csrf_token':token},headers={'Set-Cookie':f'usoe_session_{self.server.server_port}={sid}; HttpOnly; SameSite=Strict; Path=/'})
         if path.startswith('/api/') and not self.session():raise DomainError('Local session required','UNAUTHORIZED',401)
+        if path=='/api/v1/research':return self.respond(200,self.server.research.dashboard())
+        if path=='/api/v1/ai/status':return self.respond(200,self.server.research.ai.status())
         if path=='/api/v1/integrations':return self.respond(200,self.server.integrations.status())
         if path=='/api/v1/broker/orders':return self.respond(200,{'items':self.server.broker_orders.list()})
         if path=='/api/v1/status':return self.respond(200,s.status())
@@ -142,6 +145,17 @@ class Handler(BaseHTTPRequestHandler):
 
     def post(self,body):
         s=self.server.service;path=urlparse(self.path).path;key=self.headers.get('Idempotency-Key')
+        if path=='/api/v1/research/preferences':return self.respond(200,self.server.research.save_preferences(body))
+        if path=='/api/v1/research/run':return self.respond(200,self.server.research.run_once())
+        if path=='/api/v1/research/exhibits':return self.respond(200,self.server.sources.sec_exhibits(body['filing_id']))
+        if path=='/api/v1/research/extract':return self.respond(200,self.server.research.extract(body['filing_id']))
+        match=re.fullmatch(r'/api/v1/research/drafts/([\w-]+)/approve',path)
+        if match:return self.respond(200,self.server.research.approve(match[1],body))
+        match=re.fullmatch(r'/api/v1/opportunities/([\w-]+)/explain',path)
+        if match:return self.respond(200,self.server.research.explain(match[1]))
+        if path=='/api/v1/research/notices/read':
+            with s.store.transaction() as db:db.execute('UPDATE research_notices SET read_at=? WHERE id=?',(utcnow(),body['id']))
+            return self.respond(200,{'read':True})
         if path=='/api/v1/settings':
             mode=body.get('ai_mode')
             if mode not in ('off','assist'):raise DomainError('AI mode must be off or assist')

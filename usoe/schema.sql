@@ -29,3 +29,7 @@ CREATE TABLE IF NOT EXISTS broker_tickets(id TEXT PRIMARY KEY, idempotency_key T
 CREATE TABLE IF NOT EXISTS broker_receipts(id INTEGER PRIMARY KEY AUTOINCREMENT, ticket_id TEXT NOT NULL REFERENCES broker_tickets(id), kind TEXT NOT NULL, data_json TEXT NOT NULL, created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS broker_executions(id TEXT PRIMARY KEY, ticket_id TEXT NOT NULL REFERENCES broker_tickets(id), data_json TEXT NOT NULL, created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS integration_calculations(id TEXT PRIMARY KEY, kind TEXT NOT NULL, input_json TEXT NOT NULL, result_json TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS ai_artifacts(id TEXT PRIMARY KEY,kind TEXT NOT NULL,input_hash TEXT NOT NULL,result_json TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS research_drafts(id TEXT PRIMARY KEY,filing_id TEXT NOT NULL REFERENCES filings(id),status TEXT NOT NULL,data_json TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS research_notices(id TEXT PRIMARY KEY,kind TEXT NOT NULL,entity_id TEXT NOT NULL,data_json TEXT NOT NULL,created_at TEXT NOT NULL,read_at TEXT);
+CREATE TABLE IF NOT EXISTS filing_documents(filing_id TEXT NOT NULL REFERENCES filings(id),raw_document_id TEXT NOT NULL REFERENCES raw_documents(id),kind TEXT NOT NULL,PRIMARY KEY(filing_id,raw_document_id));

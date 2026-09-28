@@ -19,7 +19,7 @@
 | Execution | 本地演示闭环；另有 IBKR paper 草稿/what-if/显式确认/警告回复/取消 API，持久防重、部分成交和执行对账账本 | API 实现与模拟测试完成，真实账户仍待验收；UI 可查看券商账本，券商持仓与机会状态/绩效的完整自动闭环仍未验收；live 禁用 |
 | Outcome / learning | 演示 entry/exit 净损益/费用/R；新增历史日线 1/5/10/20D、MFE/MAE、可确定基准收益/滑点的计算与存档 API | 日内入场当日极值排除；不含分红；不推测未知基准入场价；与真实券商学习库自动汇总待扩展 |
 | Historical analog | 家族匹配、禁止未来 outcome、样本不足提示、描述统计 | 高级公司/板块/趋势/估值匹配未完成；没有内置真实类比样本 |
-| AI independence | 纯函数核心不发出 AI 请求；AI fields 从输入核心哈希剔除；OFF/ASSIST 导出一致 | AI adapter UI 降级标记已实现，外部解释服务 / candidate extraction 持久管道未接入 |
+| AI independence | 纯函数核心不发出 AI 请求；AI fields 从输入核心哈希剔除；OFF/ASSIST 导出一致 | DeepSeek 候选提取/独立解释、缓存/预算/脱敏边界、人工复核晋升已实现；真实提取质量验收按用户要求后置 |
 | Export | 单机会、today、watchlist、portfolio、events、outcomes、performance 的 JSON/Markdown/CSV；核心哈希与快照元信息，CSV 注入转义 | 导出仅本机授权会话可读；二次分发需先检查数据授权 |
 | UI | 中文、响应式、筛选、证据原文、条件进度、入场/退出确认、错误提示、空状态、审计、源状态 | 无新闻流、总分排名、收益预测或 AI 聊天首页 |
 | Security / operations | 仅 loopback；Host 校验、SameSite HttpOnly 会话、同源 CSRF、CSP、密钥环境变量、审计链、指标、备份/校验/重放脚本 | 多用户认证、账户重认证、外部告警、自动备份策略、恢复演练、许可证核验尚未生产验收 |
@@ -49,3 +49,7 @@
 ## 集成 v2 补充
 
 详细配置、计算范围及账户待验收项以 [INTEGRATIONS.md](INTEGRATIONS.md) 为准。旧示例与旧 API 契约中关于“仅适配器骨架”的说明已被本节替代。
+
+## 个人研究补充
+
+新增独立研究状态、股票/事件偏好、DeepSeek、EX-99 归档、候选复核、可选研究轮询及本机提醒。个人使用与 AI 的实际边界见 [PERSONAL-RESEARCH.md](PERSONAL-RESEARCH.md)；真实案例及长期验收后置，不影响开发和合成验证继续。

@@ -102,6 +102,32 @@ class Sources:
         self._state('sec','HEALTHY')
         return {'filings_archived':len(inserted),'items':inserted,'companyfacts_raw_id':frid,'status':'REVIEW_REQUIRED','message':'Raw SEC documents archived. No unverified trading opportunity was created.'}
 
+    def sec_exhibits(self,filing_id):
+        """Archive bounded EX-99 HTML/text attachments from the SEC accession index."""
+        if self.service.demo:raise DomainError('Exhibits require shadow workspace')
+        rows=self.store.query('SELECT f.*,r.url FROM filings f JOIN raw_documents r ON r.id=f.raw_document_id WHERE f.id=?',(filing_id,))
+        if not rows:raise DomainError('Filing not found')
+        filing=rows[0];ua=os.environ.get('SEC_USER_AGENT','')
+        if '@' not in ua:raise DomainError('Configure SEC_USER_AGENT','SOURCE_NOT_CONFIGURED',409)
+        parsed=urllib.parse.urlparse(filing['url'])
+        if parsed.scheme!='https' or parsed.netloc!='www.sec.gov' or not parsed.path.startswith('/Archives/edgar/data/'):raise DomainError('Untrusted filing archive')
+        directory=parsed.path.rsplit('/',1)[0]+'/'
+        content,_,_=self._fetch('sec',directory+'index.json','https://www.sec.gov',{'User-Agent':ua},filing['accepted_at'])
+        data=json.loads(content);items=data.get('directory',{}).get('item',[]);saved=[]
+        for item in items:
+            name=item.get('name','')
+            if not re.fullmatch(r'[A-Za-z0-9_.-]+\.(?:htm|html|txt)',name,re.I) or not re.search(r'ex(?:hibit)?[-_]?99|(?:^|[-_])99[12]|earnings|press[-_]?release',name,re.I):continue
+            if len(saved)>=5:break
+            url='https://www.sec.gov'+directory+name
+            previous=self.store.query('SELECT r.id FROM filing_documents d JOIN raw_documents r ON r.id=d.raw_document_id WHERE d.filing_id=? AND r.url=?',(filing_id,url))
+            if previous:saved.append(previous[0]['id']);continue
+            _,rid,_=self._fetch('sec',directory+name,'https://www.sec.gov',{'User-Agent':ua},filing['accepted_at'])
+            with self.store.transaction() as db:
+                db.execute('INSERT OR IGNORE INTO filing_documents VALUES (?,?,?)',(filing_id,rid,'EX99'))
+                Store.audit(db,'SEC_EXHIBIT_ARCHIVED',filing_id,{'raw_document_id':rid})
+            saved.append(rid)
+        return {'filing_id':filing_id,'documents':saved,'note':'Only matching EX-99 HTML/text attachments; unmatched/PDF exhibits require manual review.'}
+
     def massive_bars(self,symbol,start,end):
         """Legacy import compatibility only. Application routes use integrations.MassiveClient."""
         key=os.environ.get('MASSIVE_API_KEY','')

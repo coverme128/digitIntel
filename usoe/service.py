@@ -108,7 +108,7 @@ class Service:
                     row=db.execute('SELECT * FROM raw_documents WHERE id=?',(e.get('raw_document_id'),)).fetchone()
                     if not row or row['is_demo'] or row['source_id']!='sec': raise DomainError('Evidence must reference an ingested official SEC document')
                     rid,sha=row['id'],row['sha256']; e['url']=row['url']; e['source_id']='sec'
-                    filing=db.execute('SELECT * FROM filings WHERE raw_document_id=?',(rid,)).fetchone()
+                    filing=db.execute('SELECT f.* FROM filings f WHERE f.raw_document_id=? OR f.id IN (SELECT filing_id FROM filing_documents WHERE raw_document_id=?)',(rid,rid)).fetchone()
                     if not filing or filing['security_id']!=packet['security']['security_id'] or dt(filing['accepted_at'])>dt(packet['event_at']): raise DomainError('Evidence issuer / point-in-time mismatch')
                     if filing['accession']==packet['accession'] and filing['accepted_at']==packet['event_at']:
                         has_current_filing=True
@@ -358,9 +358,11 @@ class Service:
         return result
 
     def status(self):
+        from .ai import DeepSeek
+        ai=DeepSeek(self).status()
         blockers=['未完成 100 个真实历史 Golden 样本验收','SEC 尚未通过连续 14 个交易日稳定性验证','未完成至少 20 个交易日 Shadow 验证','Massive 实时窗口、交易所日历与数据授权待验证','IBKR 纸面成交、部分成交、拒单及对账尚未验收','备份恢复演练、告警投递和数据许可待验证']
         if self.demo:blockers.insert(0,'当前为合成数据回放工作区，不可用于实际投资决策')
-        return {'version':'1.0.2','release_status':'PRODUCTION_BLOCKED','mode':'demo' if self.demo else 'shadow','ai_mode':self.store.setting('ai_mode','off'),'ai_status':'OFF' if self.store.setting('ai_mode','off')=='off' else 'AI_ASSIST_UNAVAILABLE','rule_version':self.rules['rule_version'],'as_of':self.now(),'live_trading':False,'sources':self.store.query('SELECT * FROM sources'),'blockers':blockers,'audit':self.store.verify_audit()}
+        return {'version':'1.0.2','release_status':'PRODUCTION_BLOCKED','mode':'demo' if self.demo else 'shadow','ai_mode':self.store.setting('ai_mode','off'),'ai_status':ai['state'],'ai_provider':ai,'rule_version':self.rules['rule_version'],'as_of':self.now(),'live_trading':False,'sources':self.store.query('SELECT * FROM sources'),'blockers':blockers,'audit':self.store.verify_audit()}
 
     def export(self,payload):
         return envelope(payload,self.store.setting('ai_mode','off'),self.rules['rule_version'])

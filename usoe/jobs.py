@@ -15,7 +15,7 @@ class SECWorker:
             db.execute('CREATE TABLE IF NOT EXISTS jobs(id INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT NOT NULL,state TEXT NOT NULL,started_at TEXT NOT NULL,finished_at TEXT,details_json TEXT NOT NULL)')
             db.execute("UPDATE jobs SET state='INTERRUPTED',finished_at=? WHERE state='RUNNING'",(utcnow(),))
 
-    def run_once(self):
+    def run_once(self,security_ids=None):
         s=self.service
         with s.store.transaction() as db:
             cursor=db.execute("INSERT INTO jobs(kind,state,started_at,details_json) VALUES ('SEC_POLL','RUNNING',?,'{}')",(utcnow(),));job=cursor.lastrowid
@@ -24,6 +24,7 @@ class SECWorker:
             # Membership is date-effective; historical index membership is never inferred.
             day=s.now()[:10]
             rows=s.store.query('SELECT DISTINCT security_id FROM universe_memberships WHERE valid_from<=? AND (valid_to IS NULL OR valid_to>?)',(day,day))
+            if security_ids is not None:rows=[r for r in rows if r['security_id'] in security_ids]
             for row in rows:
                 if self.stop_event.is_set():break
                 try:

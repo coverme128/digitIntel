@@ -97,7 +97,7 @@ python3 scripts/manage.py --db data/demo.sqlite3 backup /tmp/usoe-backup.sqlite3
 
 ## 已冻结的边界
 
-- AI Off 完整保留核心规则与导出；AI Assist 未配置 provider 时显示 `AI_ASSIST_UNAVAILABLE`。当前不附带任何外部 AI 请求。
+- AI Off 完整保留核心规则与导出；DeepSeek 已接入独立候选/解释流程，未配置 Key 时明确降级；AI Off 不发出模型请求。
 - READY 不是自动买入。资金和风险计划必须经过显式二次确认；隔离演示的本地模拟与 IBKR 纸面 API 分开；后者必须配置、核验 paper 账户并逐次显式确认。真实资金提交关闭。
 - 无具体 subtype 规则的公司事件不得 READY；融资摊薄为 POSITION_RISK；M&A 为 CONTEXT_ONLY。
 - 不以模拟案例替代真实 Golden 100；不以一次回归代替 14 / 20 个交易日运行验证。
@@ -111,3 +111,9 @@ python3 scripts/manage.py --db data/demo.sqlite3 backup /tmp/usoe-backup.sqlite3
 - [IBKR Web API](https://www.interactivebrokers.com/campus/ibkr-api-page/webapi-doc/) 与 [Positions](https://www.interactivebrokers.com/docs/web-api/v1/endpoints/portfolio/positions)：只读账户与持仓。
 
 本工具用于研究和记录，不构成投资建议；当前规则未被证明具备盈利能力。
+
+## 个人研究与 DeepSeek
+
+新增“每日研究”页面，不接 IBKR 也能查看独立研究状态、选择关注股票和事件、复核 AI 候选及查看本机提醒。DeepSeek 提取和解释独立于核心规则，Key 配置在本机 `.env`，AI Assist 和自动提取分别控制。真实案例验收暂后置。
+
+完整使用流程、模型配置、SEC 展品、人工核对与 `--poll-research` 见 [个人研究指南](docs/PERSONAL-RESEARCH.md)。
