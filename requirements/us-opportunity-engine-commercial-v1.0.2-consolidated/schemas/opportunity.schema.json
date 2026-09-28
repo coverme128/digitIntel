@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Opportunity",
+  "type": "object",
+  "required": [
+    "opportunity_id",
+    "security_id",
+    "event_id",
+    "state",
+    "reason_codes",
+    "rule_version"
+  ],
+  "properties": {
+    "opportunity_id": {
+      "type": "string"
+    },
+    "security_id": {
+      "type": "string"
+    },
+    "event_id": {
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "DISCOVERED",
+        "VERIFIED",
+        "QUALIFIED",
+        "WATCH",
+        "READY",
+        "ENTERED",
+        "MANAGE",
+        "EXITED",
+        "INVALIDATED",
+        "IGNORED"
+      ]
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reaction_bucket": {
+      "enum": [
+        "UNDER_REACTION_CANDIDATE",
+        "BALANCED_REACTION",
+        "EXTENDED_REACTION",
+        "ADVERSE_REACTION",
+        null
+      ]
+    },
+    "risk_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rule_version": {
+      "type": "string"
+    }
+  }
+}

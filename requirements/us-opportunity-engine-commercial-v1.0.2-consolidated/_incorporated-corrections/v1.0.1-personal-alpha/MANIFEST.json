@@ -1,0 +1,92 @@
+{
+  "package": "us-opportunity-engine-personal-alpha-rule-golden-closure-v1.0.1",
+  "version": "1.0.1",
+  "generated": "2026-09-25",
+  "files": [
+    {
+      "path": "01-objective/PERSONAL-ALPHA-METRICS.md",
+      "sha256": "27b835d8360571033f5dfbb00f5b79fbbd5653f5991ae74aa4b15dafa7b3420e",
+      "bytes": 1031
+    },
+    {
+      "path": "01-objective/PERSONAL-ALPHA-OBJECTIVE.md",
+      "sha256": "d17b875603a6625aaf0b5f9e6167cacc5beda2a101399739da50d64105c8fb6c",
+      "bytes": 1331
+    },
+    {
+      "path": "02-rule-closure/ENTRY-INVALIDATION-BY-FAMILY.md",
+      "sha256": "9733c7714824b0daa0661afede9be6298b2f96addcedc5aaac06d31c716439f0",
+      "bytes": 2107
+    },
+    {
+      "path": "02-rule-closure/EXACT-OPPORTUNITY-RULES.md",
+      "sha256": "3a93bc7677dc0e70794e211f4ee9ded42a6631e536f317ab0b4754ef2379a06c",
+      "bytes": 2771
+    },
+    {
+      "path": "02-rule-closure/OPPORTUNITY-ROLE-MATRIX.md",
+      "sha256": "f5bd1fa19b64c03d8a6b200fa811c775c511ac551ef12561e0070e14d3629c21",
+      "bytes": 816
+    },
+    {
+      "path": "02-rule-closure/PORTFOLIO-RISK-PARAMETERS.md",
+      "sha256": "8c338abf429bdab566e58eec85201be5410c3306c37407e3d558fbd403ba4dcd",
+      "bytes": 1008
+    },
+    {
+      "path": "02-rule-closure/REACTION-AND-EXTENSION-RULES.md",
+      "sha256": "84849820c0b6637b30ff970a4d3e29d20deb7e32b14b72d768d8affdfe1f3141",
+      "bytes": 794
+    },
+    {
+      "path": "03-golden/GOLDEN-100-CONTRACT.md",
+      "sha256": "66bf605f66d24670b6160664c26d3c20d232b6f11f771b2c00a9635657e66797",
+      "bytes": 921
+    },
+    {
+      "path": "03-golden/GOLDEN-ACCEPTANCE.md",
+      "sha256": "7ab1699c97b274710a08f43006b12f3f6e602db1abc943b9c2e99a2378b58e5f",
+      "bytes": 703
+    },
+    {
+      "path": "03-golden/GOLDEN-FIXTURE-TEMPLATE.json",
+      "sha256": "2b51ce8bf58fdaca0dc0fe3791006d56e41c3a3808ceafcc0af9f4d0e82a9d3d",
+      "bytes": 723
+    },
+    {
+      "path": "04-validation/OUTCOME-LEDGER.md",
+      "sha256": "1984588b2fc540290e72a89be6fe2b9af9568ce2526fee613863d8f63e2a2163",
+      "bytes": 524
+    },
+    {
+      "path": "04-validation/PERSONAL-EDGE-LEARNING.md",
+      "sha256": "cbd6b81dd1cc18eb918ca54ec0030e922b301ab9391daec22bd1100a2cbc7f0a",
+      "bytes": 950
+    },
+    {
+      "path": "04-validation/VALIDATION-LADDER.md",
+      "sha256": "054ff820fa930d151861e0611e1ffaec0d976e5841826514fa53a83170f8fb8c",
+      "bytes": 948
+    },
+    {
+      "path": "05-codex-handoff/CODEX-CLOSURE-INSTRUCTIONS.md",
+      "sha256": "3a52a5b4d892a8aefa2324f12876034e59c492425931047f74f4e42c9af0c9a5",
+      "bytes": 1002
+    },
+    {
+      "path": "05-codex-handoff/DELTA-FROM-V1.0.md",
+      "sha256": "21f6640df3e6a89d519a107896736148af589abaf82de21f5d0a4a506212eafd",
+      "bytes": 762
+    },
+    {
+      "path": "README.md",
+      "sha256": "a4400278b6468ba38efe0f5b4675d10ea7db93df45d4f5eb217ebd926cd7b38e",
+      "bytes": 1152
+    },
+    {
+      "path": "config/personal-alpha-baseline.yaml",
+      "sha256": "b6202a5f814d88da9cdda34356d6d3d53496e49bfcb6a5edd3a9623c38c00e66",
+      "bytes": 584
+    }
+  ]
+}

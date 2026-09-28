@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "units": {
+    "prior_revenue_guidance_low":"USD", "prior_revenue_guidance_high":"USD", "current_revenue_guidance_low":"USD", "current_revenue_guidance_high":"USD",
+    "prior_eps_guidance_low":"USD/share", "prior_eps_guidance_high":"USD/share", "current_eps_guidance_low":"USD/share", "current_eps_guidance_high":"USD/share",
+    "prior_gross_margin_guidance":"percent", "current_gross_margin_guidance":"percent", "prior_operating_margin":"percent", "current_operating_margin":"percent",
+    "revenue":"USD", "gross_profit":"USD", "operating_income":"USD", "net_income":"USD", "diluted_eps":"USD/share", "operating_cash_flow":"USD", "capex":"USD", "cash":"USD", "total_debt":"USD",
+    "authorization":"USD", "market_cap":"USD", "new_shares":"shares", "existing_shares":"shares", "offer_price":"USD", "reference_price":"USD", "ownership_pct":"percent",
+    "execution_credibility":"boolean", "balance_sheet_capacity":"boolean", "leverage_stress":"boolean", "offsetting_dilution":"boolean", "active_intent":"boolean", "explicit_activist_purpose":"boolean", "definitive_agreement":"boolean",
+    "guidance_withdrawn":"boolean", "guidance_reversal":"boolean", "thesis_breaking":"boolean", "first_positive_fcf_guidance":"boolean", "decline_to_growth":"boolean", "active_intent_withdrawn":"boolean", "liquidity_deterioration":"boolean", "data_correction":"boolean", "contradiction":"boolean", "economic_mechanism":"text"
+  }
+}

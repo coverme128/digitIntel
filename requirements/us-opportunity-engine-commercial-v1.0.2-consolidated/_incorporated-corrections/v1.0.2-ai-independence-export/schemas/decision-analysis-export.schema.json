@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DecisionAnalysisExport",
+  "type": "object",
+  "required": [
+    "export_version",
+    "exported_at",
+    "ai_mode",
+    "core_output_hash",
+    "rule_version",
+    "payload"
+  ],
+  "properties": {
+    "export_version": {
+      "type": "string"
+    },
+    "exported_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ai_mode": {
+      "enum": [
+        "off",
+        "assist"
+      ]
+    },
+    "core_output_hash": {
+      "type": "string"
+    },
+    "rule_version": {
+      "type": "string"
+    },
+    "source_snapshot": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "market_snapshot": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "portfolio_snapshot": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "payload": {
+      "type": "object"
+    }
+  }
+}

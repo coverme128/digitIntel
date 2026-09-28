@@ -1,0 +1,72 @@
+{
+  "package": "us-opportunity-engine-ai-independence-export-correction-v1.0.2",
+  "version": "1.0.2",
+  "generated": "2026-09-26",
+  "files": [
+    {
+      "path": "01-contract/AI-INDEPENDENCE-CONTRACT.md",
+      "sha256": "806c61878b9fddb1a1e5f3cc73d928c3567126b672cb2535646a12ee22382328",
+      "bytes": 1234
+    },
+    {
+      "path": "01-contract/CORE-OUTPUT-CONTRACT.md",
+      "sha256": "9dd2ec3dd50fcdd5b22999293b7c315c4616a1780c80480386e8d34ea141974e",
+      "bytes": 916
+    },
+    {
+      "path": "02-product/AI-MODES-UX.md",
+      "sha256": "3fe8b4d837bf41efa68f83bf4445c817caca4990a1821de4df465390034af3cb",
+      "bytes": 493
+    },
+    {
+      "path": "02-product/DECISION-ANALYSIS-EXPORT.md",
+      "sha256": "c5123a283d17e10dc0145adb19ad82eda4139db3bf26ff70c97d16796c19f302",
+      "bytes": 934
+    },
+    {
+      "path": "03-implementation/AI-MODE-CONFIG.md",
+      "sha256": "4f1e03697887d00e92d07c18a7645746404251d119c69598e95e8f0a4608078b",
+      "bytes": 509
+    },
+    {
+      "path": "03-implementation/ARCHITECTURE-DELTA.md",
+      "sha256": "47c048f752eadae3ec7214c4a6fbbe64419d6562ae116ad996cf4225d29081da",
+      "bytes": 534
+    },
+    {
+      "path": "03-implementation/EXPORT-CONTRACT.md",
+      "sha256": "cc9330dacaab7e62fe7b9015578b8a7f0611323a6b738d5e857db4dfe92dae14",
+      "bytes": 679
+    },
+    {
+      "path": "04-tests/CORE-PARITY-TESTS.md",
+      "sha256": "e46555bbfbc6d79ab987f756f40c5726627b9b2643356339451ad5a971a6e1f1",
+      "bytes": 516
+    },
+    {
+      "path": "04-tests/EXPORT-ACCEPTANCE.md",
+      "sha256": "d1621103bd644c94305d43e301f99e7725027a1c9feb6b3c16a6f9f3315a722e",
+      "bytes": 372
+    },
+    {
+      "path": "05-codex-handoff/CODEX-CORRECTION-INSTRUCTIONS.md",
+      "sha256": "043736a3e2c3a31fc54d68afecafa5ad970799abe475b81f9e04ebe7787b8b1f",
+      "bytes": 706
+    },
+    {
+      "path": "README.md",
+      "sha256": "89b12910b2f5d1e14195e38d17003825ed70c811d2fa51efffdd0d77469aefed",
+      "bytes": 808
+    },
+    {
+      "path": "config/ai-mode.example.yaml",
+      "sha256": "f85fd716aa12031ac2e2ddf8c4c25a01b51740a8d4a0e098894ac008d6ac58ed",
+      "bytes": 218
+    },
+    {
+      "path": "schemas/decision-analysis-export.schema.json",
+      "sha256": "8aff8835707b48c5d1599c787df91c940171eb4ef7a4c1eafee415cf8cb0bcb4",
+      "bytes": 916
+    }
+  ]
+}

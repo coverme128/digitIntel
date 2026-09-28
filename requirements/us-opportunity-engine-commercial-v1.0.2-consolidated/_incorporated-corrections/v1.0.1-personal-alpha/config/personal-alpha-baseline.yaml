@@ -1,0 +1,23 @@
+version: "1.0.1"
+
+objective:
+  primary: "improve_long_term_risk_adjusted_outcome"
+  opportunity_count_target: null
+  zero_opportunity_allowed: true
+
+risk:
+  planned_loss_default_pct_equity: 0.50
+  planned_loss_hard_cap_pct_equity: 1.00
+  single_name_warning_pct: 10
+  single_name_hard_block_pct: 15
+  sector_warning_pct: 30
+  sector_hard_block_pct: 40
+  catalyst_warning_pct: 25
+  catalyst_hard_block_pct: 35
+  open_risk_warning_pct: 3
+  open_risk_hard_block_pct: 5
+
+validation:
+  shadow_min_trading_days: 20
+  provisional_review_min_trades: 30
+  formal_family_review_min_trades: 100

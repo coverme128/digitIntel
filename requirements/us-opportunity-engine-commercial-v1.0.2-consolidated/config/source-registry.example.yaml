@@ -1,0 +1,25 @@
+sources:
+  - id: sec-edgar
+    role: canonical_event_and_fundamental
+    access: api_http
+    enabled: true
+    rights_status: review_required_before_commercial_distribution
+    max_request_rate_policy: sec_fair_access
+
+  - id: massive-us-stocks
+    role: primary_market_data
+    access: rest_websocket
+    enabled: true
+    rights_status: account_plan_dependent
+
+  - id: ibkr
+    role: portfolio_and_execution
+    access: web_api
+    enabled: true
+    trading_mode: paper
+
+  - id: company-ir
+    role: official_supplemental
+    access: per_domain_adapter
+    enabled: true
+    discovery: fallback_only

@@ -1,0 +1,45 @@
+{
+  "fixture_id": "GOLDEN-000",
+  "security": {
+    "ticker": "",
+    "cik": "",
+    "sector": "",
+    "industry": ""
+  },
+  "filing": {
+    "accession": "",
+    "form": "",
+    "accepted_at": "",
+    "official_url": ""
+  },
+  "event": {
+    "family": "",
+    "type": "",
+    "role": "",
+    "materiality": ""
+  },
+  "facts": [],
+  "reaction": {
+    "raw_return": null,
+    "sector_excess_return": null,
+    "volume_ratio": null,
+    "bucket": ""
+  },
+  "expected": {
+    "state_range": [],
+    "reason_codes": []
+  },
+  "outcomes": {
+    "1d": null,
+    "5d": null,
+    "10d": null,
+    "20d": null,
+    "mfe": null,
+    "mae": null
+  },
+  "evidence": {
+    "raw_sha256": "",
+    "evidence_spans": []
+  },
+  "notes": ""
+}

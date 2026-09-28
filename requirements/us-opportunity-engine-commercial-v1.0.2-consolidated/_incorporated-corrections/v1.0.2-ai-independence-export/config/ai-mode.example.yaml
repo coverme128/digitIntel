@@ -1,0 +1,14 @@
+ai:
+  mode: off
+  provider: none
+  explanation_enabled: false
+  extraction_candidates_enabled: false
+
+core:
+  ai_dependency_allowed: false
+  output_hash_enabled: true
+
+export:
+  json: true
+  markdown: true
+  csv: true

@@ -1,0 +1,32 @@
+{
+  "rule_version": "1.0.2-baseline.1",
+  "calculation_version": "1",
+  "market_max_age_seconds": 300,
+  "portfolio_max_age_seconds": 300,
+  "max_spread_bps": 30,
+  "sector_strength_min_pct": -1,
+  "risk": {
+    "planned_loss_default_pct": 0.5,
+    "planned_loss_hard_pct": 1,
+    "single_name_warning_pct": 10,
+    "single_name_hard_pct": 15,
+    "sector_warning_pct": 30,
+    "sector_hard_pct": 40,
+    "catalyst_warning_pct": 25,
+    "catalyst_hard_pct": 35,
+    "open_risk_warning_pct": 3,
+    "open_risk_hard_pct": 5
+  },
+  "expiry_sessions": {
+    "EARNINGS_REVISION": 10, "GUIDANCE_CHANGE": 10, "CAPITAL_RETURN": 15,
+    "INSIDER_OPEN_MARKET_BUY": 20, "ACTIVIST_OWNERSHIP": 20,
+    "MATERIAL_CORPORATE_EVENT": 10, "FINANCING_DILUTION": 10, "MNA_SPECIAL": 20
+  },
+  "corporate_ready_subtypes": [],
+  "notes": [
+    "v1.0.2 corrections override v1.0 examples: VERY_HIGH is supported; no composite score.",
+    "Negative sector excess reaction is ADVERSE, following the later reaction correction.",
+    "Underspecified corporate subtypes, 8-15% follow-through, and extension overrides fail closed pending explicit rules.",
+    "Calendar coverage is required; age uses supplied exchange sessions, never calendar weekdays."
+  ]
+}

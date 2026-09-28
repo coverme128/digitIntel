@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AIExtraction",
+  "type": "object",
+  "required": [
+    "extracted_claims",
+    "unresolved_fields",
+    "contradiction_flags"
+  ],
+  "properties": {
+    "extracted_claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "claim_type",
+          "value",
+          "evidence_locator"
+        ],
+        "properties": {
+          "claim_type": {
+            "type": "string"
+          },
+          "value": {},
+          "unit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "period": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence_locator": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "event_type_candidate": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "unresolved_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contradiction_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

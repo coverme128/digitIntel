@@ -1,0 +1,20 @@
+rule_version: "1.0.0"
+
+universe:
+  sp500: true
+  nasdaq100: true
+  user_watchlist: true
+
+opportunity:
+  stale_market_data_blocks_ready: true
+  evidence_required: true
+  portfolio_hard_block_required: true
+
+historical_analog:
+  horizons_days: [1, 5, 10, 20]
+  minimum_statistical_sample: 10
+
+execution:
+  live_auto_trading: false
+  explicit_user_confirmation: true
+  paper_before_live: true
