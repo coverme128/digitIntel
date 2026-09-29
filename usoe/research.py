@@ -12,7 +12,32 @@ DEFAULTS={'families':['GUIDANCE_CHANGE','EARNINGS_REVISION'],'watchlist_only':Tr
 
 class Research:
     def __init__(self,service,integrations=None,ai=None):
-        self.s=service;self.store=service.store;self.integrations=integrations;self.ai=ai or DeepSeek(service);self.lock=threading.Lock()
+        self.s=service;self.store=service.store;self.integrations=integrations;self.ai=ai or DeepSeek(service);self.lock=threading.Lock();self.schedule_lock=threading.Lock();self.update_thread=None;self.progress=None
+
+    def freshness(self):
+        import os
+        last=self.store.setting('research_last_run')
+        age=(dt(utcnow())-dt(last['finished_at'])).total_seconds() if last and last.get('finished_at') else None
+        running=self.lock.locked() or bool(self.update_thread and self.update_thread.is_alive())
+        state='UPDATING' if running else ('NEVER_UPDATED' if age is None else ('DEGRADED' if last['state']!='SUCCEEDED' or last.get('pending_extraction',0) else ('STALE' if age>=900 else 'CURRENT')))
+        return {'state':state,'running':running,'progress':self.progress,'last_run':last,'refresh_seconds':900,'market_configured':bool(os.environ.get('MASSIVE_API_KEY')),'auto_extract':self.preferences()['auto_extract']}
+
+    def ensure_fresh(self,force=False):
+        if self.s.demo:return self.freshness()
+        with self.schedule_lock:
+            state=self.freshness()
+            if state['running']:return state
+            last=state['last_run']
+            # A failed attempt has a short cooldown; opening multiple tabs does not multiply requests.
+            age=(dt(utcnow())-dt(last['finished_at'])).total_seconds() if last else None
+            due=age is None or age >= (60 if last['state']!='SUCCEEDED' or last.get('pending_extraction',0) else 900)
+            if force or due:
+                def work():
+                    try:self.run_once()
+                    except DomainError:pass
+                self.update_thread=threading.Thread(target=work,name='dashboard-catchup',daemon=True)
+                self.update_thread.start()
+            return self.freshness()
 
     def preferences(self):return self.store.setting('research_preferences',DEFAULTS)
 
@@ -51,8 +76,23 @@ class Research:
             fresh=evaluate(**inputs);fresh['state']=c['state']
             items.append({'opportunity_id':c['opportunity_id'],'ticker':c['ticker'],'catalyst':c['catalyst'],'event_family':c['event_family'],'event_at':c['event_at'],'materiality':fresh['materiality'],'reaction':fresh['reaction'],'research':self.research_state(fresh),'is_demo':self.s.demo})
         drafts=[json.loads(r['data_json'])|{'id':r['id'],'status':r['status']} for r in self.store.query("SELECT * FROM research_drafts ORDER BY created_at DESC LIMIT 100")]
+        from .engine import fundamentals,materiality
+        visible=[]
+        for draft in drafts:
+            filing=self.store.query('SELECT f.*,s.ticker FROM filings f JOIN securities s ON s.id=f.security_id WHERE f.id=?',(draft['filing_id'],))[0]
+            if prefs.get('security_ids') is not None and filing['security_id'] not in prefs['security_ids']:continue
+            if prefs['watchlist_only'] and filing['security_id'] not in members:continue
+            if draft['candidate'].get('event_family') not in prefs['families']:continue
+            errors,facts,_=self.validate_candidate(filing,draft['candidate'])
+            packet={'facts':facts,'event_family':draft['candidate'].get('event_family'),'event_type':'unreviewed'}
+            calculations,issues=fundamentals(packet) if not errors else ([],[])
+            draft.update(ticker=filing['ticker'],event_at=filing['accepted_at'],calculations=calculations,assessment=materiality(packet,calculations) if not errors else None,validation_errors=errors+issues)
+            visible.append(draft)
+        drafts=visible
+        disclosures=self.store.query("SELECT f.id,f.security_id,s.ticker,f.form,f.accepted_at,f.raw_document_id FROM filings f JOIN securities s ON s.id=f.security_id ORDER BY f.accepted_at DESC")
+        disclosures=[f for f in disclosures if (not prefs['watchlist_only'] or f['security_id'] in members) and (prefs.get('security_ids') is None or f['security_id'] in prefs['security_ids'])][:100]
         notices=[r|{'data':json.loads(r['data_json'])} for r in self.store.query('SELECT * FROM research_notices ORDER BY created_at DESC LIMIT 50')]
-        return {'securities':self.store.query('SELECT id,ticker,issuer_name FROM securities ORDER BY ticker'),'items':items,'drafts':drafts,'preferences':prefs,'ai':self.ai.status(),'notices':notices,'last_run':self.store.setting('research_last_run'),'as_of':self.s.now(),'is_demo':self.s.demo}
+        return {'securities':self.store.query('SELECT id,ticker,issuer_name FROM securities ORDER BY ticker'),'items':items,'drafts':drafts,'disclosures':disclosures,'preferences':prefs,'ai':self.ai.status(),'notices':notices,'freshness':self.freshness(),'last_run':self.store.setting('research_last_run'),'as_of':self.s.now(),'is_demo':self.s.demo}
 
     def notice(self,kind,entity,data):
         identity=digest([kind,entity,data])
@@ -62,7 +102,7 @@ class Research:
         rows=self.store.query('SELECT * FROM filings WHERE id=?',(filing_id,))
         if not rows:raise DomainError('Filing not found','NOT_FOUND',404)
         filing=rows[0]
-        older=self.store.query('SELECT * FROM filings WHERE security_id=? AND accepted_at<? AND form IN (\'8-K\',\'10-Q\',\'10-K\') ORDER BY accepted_at DESC LIMIT 1',(filing['security_id'],filing['accepted_at']))
+        older=self.store.query('SELECT * FROM filings WHERE security_id=? AND accepted_at<? AND form IN (\'8-K\',\'10-Q\',\'10-K\',\'6-K\',\'20-F\') ORDER BY accepted_at DESC LIMIT 1',(filing['security_id'],filing['accepted_at']))
         docs=[]
         selected=[]
         for f in [filing]+older:
@@ -84,7 +124,9 @@ class Research:
         if not self.ai.status()['configured']:raise DomainError('请配置 DEEPSEEK_API_KEY','AI_NOT_CONFIGURED',409)
         filing,docs=self.documents(filing_id)
         artifact=self.ai.generate('extract',{'documents':docs,'metric_registry':REGISTRY['units'],'allowed_families':['GUIDANCE_CHANGE','EARNINGS_REVISION']})
-        output=artifact['output'];draft={'filing_id':filing_id,'artifact_id':artifact['artifact_id'],'candidate':output,'documents':[dict(d,text=None) for d in docs],'requires_user_review':True}
+        output=artifact['output']
+        if not isinstance(output.get('facts'),list) or not isinstance(output.get('catalyst'),str):raise DomainError('AI 候选格式不完整','AI_UNAVAILABLE',502)
+        draft={'filing_id':filing_id,'artifact_id':artifact['artifact_id'],'candidate':output,'documents':[dict(d,text=None) for d in docs],'requires_user_review':True}
         draft['validation_errors']=self.validate_candidate(filing,output)[0]
         identity=digest([filing_id,artifact['artifact_id']])
         with self.store.transaction() as db:db.execute('INSERT OR IGNORE INTO research_drafts VALUES (?,?,?,?,?)',(identity,filing_id,'REVIEW_REQUIRED',canonical(draft),utcnow()))
@@ -155,6 +197,7 @@ class Research:
         result={'started_at':utcnow(),'extracted':0,'market_updated':0,'errors':[]}
         try:
             from .jobs import SECWorker
+            self.progress='正在补齐 SEC 披露'
             result['sec']=SECWorker(self.s).run_once(self.preferences().get('security_ids'))
             if self.preferences()['auto_extract'] and self.ai.status()['enabled'] and self.ai.status()['configured']:
                 selected=self.preferences().get('security_ids')
@@ -164,10 +207,18 @@ class Research:
                 pending=[]
                 if eligible:
                     placeholders=','.join('?' for _ in eligible)
-                    pending=self.store.query("SELECT q.filing_id FROM review_queue q JOIN filings f ON f.id=q.filing_id WHERE q.status='REVIEW_REQUIRED' AND f.form IN ('8-K','10-K','10-Q') AND NOT EXISTS(SELECT 1 FROM research_drafts d WHERE d.filing_id=q.filing_id) AND f.security_id IN ("+placeholders+") ORDER BY f.accepted_at DESC LIMIT 5",tuple(sorted(eligible)))
-                for r in pending:
-                    try:self.extract(r['filing_id']);result['extracted']+=1
+                    pending=self.store.query("SELECT q.filing_id FROM review_queue q JOIN filings f ON f.id=q.filing_id WHERE q.status='REVIEW_REQUIRED' AND f.form IN ('8-K','10-K','10-Q','6-K','20-F') AND NOT EXISTS(SELECT 1 FROM research_drafts d WHERE d.filing_id=q.filing_id) AND f.security_id IN ("+placeholders+") ORDER BY f.accepted_at DESC",tuple(sorted(eligible)))
+                result['pending_extraction']=len(pending)
+                for r in pending[:5]:
+                    try:
+                        from .sources import Sources
+                        self.progress='正在读取财报附件和提取候选事实'
+                        try:Sources(self.s).sec_exhibits(r['filing_id'])
+                        except Exception:result['errors'].append('财报附件抓取失败，候选可能缺少附件证据')
+                        self.extract(r['filing_id']);result['extracted']+=1;result['pending_extraction']-=1
                     except DomainError as e:result['errors'].append(str(e))
+            self.progress='正在更新行情和机会状态'
+            if result.get('pending_extraction'):result['errors'].append('仍有候选披露待提取，将继续分批处理；受每日 AI 请求额度限制')
             if self.integrations:
                 import os
                 if os.environ.get('MASSIVE_API_KEY'):
@@ -192,6 +243,7 @@ class Research:
         finally:
             result['finished_at']=utcnow()
             with self.store.transaction() as db:Store.set_setting(db,'research_last_run',result)
+            self.progress=None
             self.lock.release()
 
 class ResearchWorker:

@@ -141,3 +141,12 @@ JSON envelope：`export_version, exported_at, ai_mode, rule_version, source_snap
 ## 个人研究 / DeepSeek API
 
 新增 `/research`、偏好/更新/提取/复核/提醒和 `/ai/status`、机会解释接口，详见 [个人研究 API](PERSONAL-RESEARCH.md#新增-api)。这些接口不改变已有交易 READY 或核心导出哈希。
+
+### 自动看板更新
+
+- `POST /api/v1/research/ensure`，JSON `{}`：按 15 分钟新鲜度启动异步更新，返回 202 和任务状态；`{"force":true}` 可手动立即请求，但不会并发启动第二个任务。
+- `POST /api/v1/research/run`：现在同样返回 202 异步状态，不再阻塞等待外部 API 完成。
+- `GET /api/v1/research/freshness`：`state`（UPDATING / NEVER_UPDATED / DEGRADED / STALE / CURRENT）、阶段说明、最近运行、行情是否配置。
+- `GET /api/v1/research`：新增 `freshness`、`disclosures`；候选包含 `ticker`、披露时间、未复核的 `calculations` 与 `assessment`。候选不进入正式机会或交易状态。
+
+所有新增 API 沿用本地会话；启动任务的 POST 要求同源与 CSRF。GET 不触发网络抓取。失败后保留缓存并显式降级，不更新 SEC 完整补抓游标。CURRENT 仅代表本轮研究更新完成，不声明实时行情订阅或已完成事实复核。

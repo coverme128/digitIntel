@@ -46,6 +46,7 @@ def main():
         try:integration_worker=IntegrationWorker(server.integrations,args.poll_integrations,args.stream_symbols.split(',') if args.stream_symbols else None)
         except Exception as e:parser.error(str(e))
     print(canonical({'event':'server_started','url':f'http://127.0.0.1:{args.port}','mode':mode,'status':'PRODUCTION_BLOCKED'}),flush=True)
+    if not args.demo and not research_worker:server.research.ensure_fresh()
     if research_worker:research_worker.start()
     if worker:worker.start()
     if integration_worker:integration_worker.start()

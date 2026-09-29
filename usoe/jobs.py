@@ -28,7 +28,8 @@ class SECWorker:
             for row in rows:
                 if self.stop_event.is_set():break
                 try:
-                    response=self.sources.sec_sync(row['security_id']);result['synced']+=1;result['filings_archived']+=response['filings_archived']
+                    response=self.sources.sec_sync(row['security_id'],catchup=True);result['synced']+=1;result['filings_archived']+=response['filings_archived']
+                    if response.get('pending_more'):result['failures'].append({'security_id':row['security_id'],'error':'披露积压超过单轮 50 份，将在下一轮继续补齐'})
                 except (SourceUnavailable,DomainError) as e:result['failures'].append({'security_id':row['security_id'],'error':str(e)})
             for c in s.list():
                 if c['state'] not in ('IGNORED','EXITED','INVALIDATED'):

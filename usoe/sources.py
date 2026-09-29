@@ -63,7 +63,7 @@ class Sources:
         except SourceUnavailable as exc:
             self._state(source,'DEGRADED',str(exc));raise
 
-    def sec_sync(self,security_id,limit=5):
+    def sec_sync(self,security_id,limit=5,catchup=False):
         if self.service.demo:raise DomainError('SEC sync is available in shadow workspace only')
         ua=os.environ.get('SEC_USER_AGENT','')
         if '@' not in ua:raise DomainError('Configure SEC_USER_AGENT with contact email','SOURCE_NOT_CONFIGURED',409)
@@ -75,14 +75,33 @@ class Sources:
         except ValueError:self._state('sec','DEGRADED','Malformed submissions JSON');raise SourceUnavailable('Malformed submissions JSON')
         if str(data.get('cik','')).zfill(10)!=cik or sec['ticker'] not in data.get('tickers',[]):
             self._state('sec','DEGRADED','Ticker / CIK identity mismatch');raise DomainError('SEC security mapping mismatch','IDENTITY_CONFLICT',409)
-        recent=data.get('filings',{}).get('recent',{}); n=min(max(int(limit),1),20,len(recent.get('accessionNumber',[])))
+        recent=data.get('filings',{}).get('recent',{})
+        checked_at=utcnow()
+        cursor_key='sec_cursor_'+security_id
+        pending_more=False
+        if catchup:
+            from datetime import timedelta
+            since=self.store.setting(cursor_key) or (dt(checked_at)-timedelta(days=30)).isoformat()
+            since=(dt(since)-timedelta(days=1)).isoformat() # overlap for delayed SEC indexing
+            # SEC older submissions files extend coverage when recent no longer spans the cursor.
+            for file in data.get('filings',{}).get('files',[]):
+                if file.get('filingTo','')<since[:10]:continue
+                name=file.get('name','')
+                if not re.fullmatch(r'CIK[0-9]+-submissions-[0-9]+\.json',name):raise SourceUnavailable('Invalid historical submissions path')
+                raw,_,_=self._fetch('sec','/submissions/'+name,'https://data.sec.gov',headers)
+                older=json.loads(raw)
+                for k in ('accessionNumber','primaryDocument','form','acceptanceDateTime'):
+                    recent.setdefault(k,[]).extend(older.get(k,[]))
+            eligible=[i for i,a in enumerate(recent.get('acceptanceDateTime',[])) if dt(a)>=dt(since) and not self.store.query('SELECT id FROM filings WHERE accession=?',(recent['accessionNumber'][i],))]
+            indices=eligible[:50];pending_more=len(eligible)>50
+        else:indices=range(min(max(int(limit),1),20,len(recent.get('accessionNumber',[]))))
         inserted=[]
-        for i in range(n):
+        for i in indices:
             accession=recent['accessionNumber'][i]
-            if not re.fullmatch(r'\d{10}-\d{2}-\d{6}',accession):continue
+            if not re.fullmatch(r'\d{10}-\d{2}-\d{6}',accession):raise SourceUnavailable('Invalid accession in SEC submissions')
             if self.store.query('SELECT id FROM filings WHERE accession=?',(accession,)):continue
             name=recent['primaryDocument'][i]
-            if not re.fullmatch(r'[A-Za-z0-9_./\-]+',name) or '..' in name:continue
+            if not re.fullmatch(r'[A-Za-z0-9_./\-]+',name) or '..' in name:raise SourceUnavailable('Invalid primary document in SEC submissions')
             if recent['form'][i] in ('4','4/A') and name.startswith('xsl'):name=name.rsplit('/',1)[-1]
             accepted=recent['acceptanceDateTime'][i];dt(accepted)
             path=f'/Archives/edgar/data/{int(cik)}/{accession.replace("-","")}/{name}'
@@ -99,8 +118,10 @@ class Sources:
             facts=json.loads(facts_raw)
             if str(facts.get('cik','')).zfill(10)!=cik:raise ValueError('CIK mismatch')
         except ValueError:self._state('sec','DEGRADED','Company facts identity / schema invalid');raise SourceUnavailable('Company facts identity / schema invalid')
+        if catchup and not pending_more:
+            with self.store.transaction() as db:Store.set_setting(db,cursor_key,checked_at)
         self._state('sec','HEALTHY')
-        return {'filings_archived':len(inserted),'items':inserted,'companyfacts_raw_id':frid,'status':'REVIEW_REQUIRED','message':'Raw SEC documents archived. No unverified trading opportunity was created.'}
+        return {'pending_more':pending_more,'checked_at':checked_at,'filings_archived':len(inserted),'items':inserted,'companyfacts_raw_id':frid,'status':'REVIEW_REQUIRED','message':'Raw SEC documents archived. No unverified trading opportunity was created.'}
 
     def sec_exhibits(self,filing_id):
         """Archive bounded EX-99 HTML/text attachments from the SEC accession index."""
