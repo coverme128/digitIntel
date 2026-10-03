@@ -150,3 +150,14 @@ JSON envelope：`export_version, exported_at, ai_mode, rule_version, source_snap
 - `GET /api/v1/research`：新增 `freshness`、`disclosures`；候选包含 `ticker`、披露时间、未复核的 `calculations` 与 `assessment`。候选不进入正式机会或交易状态。
 
 所有新增 API 沿用本地会话；启动任务的 POST 要求同源与 CSRF。GET 不触发网络抓取。失败后保留缓存并显式降级，不更新 SEC 完整补抓游标。CURRENT 仅代表本轮研究更新完成，不声明实时行情订阅或已完成事实复核。
+
+## 共享事件判断视图（2026-10-03）
+
+今日概览、研究动态与机会研究共用 `GET /api/v1/research`，页面分工不引入重复研究对象。该 GET 只读取并计算，不保存判断历史。
+
+- `impacts`：当前事件判断，包含 `identity`、`ticker`、`direction`、`direction_label`、`status`、`evidence_reviewed`、`event_at`、`as_of`、`reasons`、`market`、`horizons`、`invalidation`、`next_step`、`limitations`、`conditions_missing` 与证据入口。方向不等于交易状态，预期收益和概率暂不估计。
+- `impact_history`：最近保存的判断快照，每条含 `id`、`recorded_at`、`judgment`；记录时间不等于事件时间，不是收益准确率记录。
+- `disclosures`：关注范围内最近归档披露，按 accepted 时间倒序，最多 100 条；不是全部历史披露的分页接口。
+- `drafts`、`notices`、`preferences`、`freshness`、`last_run`：用于事实核对、提醒、关注设置与同步状态。
+
+前端用 `#opportunities/impact-<编码后的 identity>` 定位同一判断卡片，属于页面路由，不是新的服务端写入接口。历史/失效卡片默认收起。研究更新完成时追加保存发生变化的判断快照；旧快照不覆盖。

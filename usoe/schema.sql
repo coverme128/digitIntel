@@ -33,3 +33,6 @@ CREATE TABLE IF NOT EXISTS ai_artifacts(id TEXT PRIMARY KEY,kind TEXT NOT NULL,i
 CREATE TABLE IF NOT EXISTS research_drafts(id TEXT PRIMARY KEY,filing_id TEXT NOT NULL REFERENCES filings(id),status TEXT NOT NULL,data_json TEXT NOT NULL,created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS research_notices(id TEXT PRIMARY KEY,kind TEXT NOT NULL,entity_id TEXT NOT NULL,data_json TEXT NOT NULL,created_at TEXT NOT NULL,read_at TEXT);
 CREATE TABLE IF NOT EXISTS filing_documents(filing_id TEXT NOT NULL REFERENCES filings(id),raw_document_id TEXT NOT NULL REFERENCES raw_documents(id),kind TEXT NOT NULL,PRIMARY KEY(filing_id,raw_document_id));
+
+CREATE TABLE IF NOT EXISTS impact_judgments(id INTEGER PRIMARY KEY AUTOINCREMENT,entity_id TEXT NOT NULL,fingerprint TEXT NOT NULL,snapshot_json TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS impact_entity ON impact_judgments(entity_id,id);

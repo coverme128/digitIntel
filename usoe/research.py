@@ -66,7 +66,9 @@ class Research:
     def dashboard(self):
         prefs=self.preferences();day=self.s.now()[:10]
         members={r['security_id'] for r in self.store.query('SELECT DISTINCT security_id FROM universe_memberships WHERE valid_from<=? AND (valid_to IS NULL OR valid_to>?)',(day,day))}
-        items=[]
+        from .impact import assess
+        from .engine import fundamentals,materiality
+        items=[];impacts=[]
         for c in self.s.list():
             if c['event_family'] not in prefs['families'] or c['state'] in ('IGNORED','EXITED'):continue
             if prefs['watchlist_only'] and not self.s.demo and c['security_id'] not in members:continue
@@ -74,6 +76,7 @@ class Research:
             row=self.store.query('SELECT input_json FROM evaluations WHERE id=?',(c['evaluation_id'],))[0]
             inputs=json.loads(row['input_json']);inputs.update(as_of=self.s.now(),portfolio=self.s.portfolio())
             fresh=evaluate(**inputs);fresh['state']=c['state']
+            impacts.append(assess(identity='opportunity:'+c['opportunity_id'],ticker=c['ticker'],catalyst=c['catalyst'],event_at=c['event_at'],as_of=self.s.now(),calculations=fresh['calculations'],errors=fundamentals({'facts':fresh['facts']})[1],reviewed=fresh['evidence_quality']=='CONFIRMED',core=fresh,evidence=fresh.get('evidence',[])))
             items.append({'opportunity_id':c['opportunity_id'],'ticker':c['ticker'],'catalyst':c['catalyst'],'event_family':c['event_family'],'event_at':c['event_at'],'materiality':fresh['materiality'],'reaction':fresh['reaction'],'research':self.research_state(fresh),'is_demo':self.s.demo})
         drafts=[json.loads(r['data_json'])|{'id':r['id'],'status':r['status']} for r in self.store.query("SELECT * FROM research_drafts ORDER BY created_at DESC LIMIT 100")]
         from .engine import fundamentals,materiality
@@ -87,12 +90,22 @@ class Research:
             packet={'facts':facts,'event_family':draft['candidate'].get('event_family'),'event_type':'unreviewed'}
             calculations,issues=fundamentals(packet) if not errors else ([],[])
             draft.update(ticker=filing['ticker'],event_at=filing['accepted_at'],calculations=calculations,assessment=materiality(packet,calculations) if not errors else None,validation_errors=errors+issues)
+            if draft['status']!='APPROVED':
+                impacts.append(assess(identity='draft:'+draft['id'],ticker=filing['ticker'],catalyst=draft['candidate'].get('catalyst','待核对披露'),event_at=filing['accepted_at'],as_of=self.s.now(),calculations=calculations,errors=errors+issues,evidence=[{'raw_document_id':d['raw_document_id']} for d in draft.get('documents',[])]))
             visible.append(draft)
         drafts=visible
         disclosures=self.store.query("SELECT f.id,f.security_id,s.ticker,f.form,f.accepted_at,f.raw_document_id FROM filings f JOIN securities s ON s.id=f.security_id ORDER BY f.accepted_at DESC")
         disclosures=[f for f in disclosures if (not prefs['watchlist_only'] or f['security_id'] in members) and (prefs.get('security_ids') is None or f['security_id'] in prefs['security_ids'])][:100]
+        impacts.sort(key=lambda c:c['event_at'],reverse=True)
+        impacts.sort(key=lambda c:(c['status'] in ('HISTORICAL','INVALIDATED'),c['direction']=='UNKNOWN'))
+        ids={c['identity'] for c in impacts}|{'draft:'+d['id'] for d in drafts}
+        history=[{'id':r['id'],'recorded_at':r['created_at'],'judgment':json.loads(r['snapshot_json'])} for r in self.store.query('SELECT * FROM impact_judgments ORDER BY id DESC LIMIT 200') if r['entity_id'] in ids][:30]
         notices=[r|{'data':json.loads(r['data_json'])} for r in self.store.query('SELECT * FROM research_notices ORDER BY created_at DESC LIMIT 50')]
-        return {'securities':self.store.query('SELECT id,ticker,issuer_name FROM securities ORDER BY ticker'),'items':items,'drafts':drafts,'disclosures':disclosures,'preferences':prefs,'ai':self.ai.status(),'notices':notices,'freshness':self.freshness(),'last_run':self.store.setting('research_last_run'),'as_of':self.s.now(),'is_demo':self.s.demo}
+        return {'securities':self.store.query('SELECT id,ticker,issuer_name FROM securities ORDER BY ticker'),'items':items,'impacts':impacts,'impact_history':history,'drafts':drafts,'disclosures':disclosures,'preferences':prefs,'ai':self.ai.status(),'notices':notices,'freshness':self.freshness(),'last_run':self.store.setting('research_last_run'),'as_of':self.s.now(),'is_demo':self.s.demo}
+
+    def record_impacts(self):
+        from .impact import record
+        return record(self.store,self.dashboard().get('impacts',[]))
 
     def notice(self,kind,entity,data):
         identity=digest([kind,entity,data])
@@ -226,6 +239,7 @@ class Research:
                         if c['research']['state']=='INVALIDATED':continue
                         try:self.integrations.refresh_market(c['opportunity_id']);result['market_updated']+=1
                         except Exception:result['errors'].append(c['ticker']+' 行情更新失败')
+            self.record_impacts()
             previous=self.store.setting('research_seen_states',{})
             for c in self.dashboard()['items']:
                 current=c['research']['state'];identity=c['opportunity_id']

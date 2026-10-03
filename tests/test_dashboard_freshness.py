@@ -98,7 +98,12 @@ class DashboardTests(unittest.TestCase):
             facts.append(dict(metric_id=f'{era}_revenue_guidance_{end}',value=value,unit='USD',period_start='2026-01-01',period_end='2026-12-31',source_token=str(value),source_scale=1,raw_document_id=rid,excerpt=text))
         candidate=dict(event_family='GUIDANCE_CHANGE',catalyst='Unverified guidance',facts=facts)
         with self.store.transaction() as db:db.execute('INSERT INTO research_drafts VALUES (?,?,?,?,?)',('d','f','REVIEW_REQUIRED',canonical(dict(filing_id='f',candidate=candidate,documents=[])),utcnow()))
-        d=self.r.dashboard()['drafts'][0]
+        board=self.r.dashboard();d=board['drafts'][0]
+        self.assertEqual(board['impacts'][0]['direction'],'BULLISH')
+        self.assertEqual(board['impacts'][0]['status'],'REVIEW_REQUIRED')
+        self.assertFalse(self.store.query('SELECT * FROM impact_judgments'))
+        before=len(self.store.query('SELECT * FROM audit'));self.r.dashboard()
+        self.assertEqual(before,len(self.store.query('SELECT * FROM audit')))
         self.assertEqual(d['ticker'],'TEST');self.assertAlmostEqual(d['calculations'][0]['change'],19.047619)
         self.assertEqual(d['status'],'REVIEW_REQUIRED');self.assertFalse(self.s.list())
         self.r.save_preferences(dict(families=['GUIDANCE_CHANGE'],watchlist_only=True,auto_extract=False,security_ids=[]))
