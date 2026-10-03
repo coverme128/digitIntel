@@ -34,6 +34,25 @@ class ResearchTests(unittest.TestCase):
         with self.store.transaction() as db:Store.set_setting(db,'ai_mode','assist')
     def fake_ai(self,output=None):
         self.enable();http=FakeTransport(completion(output or self.candidate));self.r.ai=DeepSeek(self.s,http);return http
+    def test_new_stock_joins_explicit_research_selection(self):
+        self.r.save_preferences({'families':['GUIDANCE_CHANGE'],'watchlist_only':True,'auto_extract':False,'security_ids':['test']})
+        stock={'security_id':'new','ticker':'NEW','cik':'0000000002','issuer_name':'New issuer','sector':'Technology'}
+        self.s.register(stock)
+        self.assertEqual(self.r.preferences()['security_ids'],['test','new'])
+        self.s.register(stock)
+        self.assertEqual(self.r.preferences()['security_ids'],['test','new'])
+        self.assertTrue(self.store.verify_audit()['valid'])
+
+    def test_other_universe_and_readding_paused_stock_do_not_change_selection(self):
+        self.r.save_preferences({'families':['GUIDANCE_CHANGE'],'watchlist_only':True,'auto_extract':False,'security_ids':[]})
+        self.s.register({'security_id':'other','ticker':'OTHER','cik':'0000000002','issuer_name':'Other issuer','sector':'Technology'},'SP500')
+        self.s.register({'security_id':'test','ticker':'TEST','cik':'0000000001','issuer_name':'Test issuer','sector':'Technology'})
+        self.assertEqual(self.r.preferences()['security_ids'],[])
+
+    def test_all_stocks_preference_stays_all_on_registration(self):
+        self.s.register({'security_id':'new','ticker':'NEW','cik':'0000000002','issuer_name':'New issuer','sector':'Technology'})
+        self.assertIsNone(self.r.preferences()['security_ids'])
+
     def test_off_makes_no_request(self):
         http=FakeTransport(completion(self.candidate));ai=DeepSeek(self.s,http)
         with self.assertRaises(DomainError):ai.generate('extract',{})

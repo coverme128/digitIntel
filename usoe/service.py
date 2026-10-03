@@ -70,7 +70,17 @@ class Service:
         if not re.fullmatch(r'\d{10}',security['cik']): raise DomainError('CIK must be 10 digits')
         if universe not in ('USER_WATCHLIST','SP500','NASDAQ100'): raise DomainError('Unknown universe')
         with self.store.transaction() as db:
+            existing=db.execute('SELECT id FROM securities WHERE ticker=?',(security['ticker'],)).fetchone()
             self._security(db,security)
+            # Newly added watchlist stocks must join explicit research selections.
+            if not existing and universe=='USER_WATCHLIST':
+                row=db.execute("SELECT value FROM settings WHERE key='research_preferences'").fetchone()
+                if row:
+                    prefs=json.loads(row['value'])
+                    if prefs.get('security_ids') is not None:
+                        prefs['security_ids']=list(dict.fromkeys(prefs['security_ids']+[security['security_id']]))
+                        Store.set_setting(db,'research_preferences',prefs)
+                        Store.audit(db,'RESEARCH_STOCK_ADDED',security['security_id'],{})
             start=valid_from or self.now()[:10]
             identity=digest([security['security_id'],universe,start])[:24]
             db.execute('INSERT OR IGNORE INTO universe_memberships VALUES (?,?,?,?,NULL)',(identity,security['security_id'],universe,start))

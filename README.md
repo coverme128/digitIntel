@@ -119,3 +119,5 @@ python3 scripts/manage.py --db data/demo.sqlite3 backup /tmp/usoe-backup.sqlite3
 完整使用流程、模型配置、SEC 展品、人工核对与 `--poll-research` 见 [个人研究指南](docs/PERSONAL-RESEARCH.md)。
 
 方向颜色采用红色偏多、绿色偏空、黄色分歧、灰色证据不足或历史/失效；保留文字和复核状态。颜色用于研究筛选，不等于买入指令。当前判断规则未经过历史效果校准；真实行情访问仍受订阅权限限制，见 [Massive 实际接口验证](docs/MASSIVE-LIVE-VALIDATION.md)。
+
+首页仅展示有效红色偏多、绿色偏空线索，无结果显示“暂无明确方向线索”；分歧与证据不足保留在研究动态中。首页和观察列表可添加关注股票，当前需填写 ticker、SEC CIK、公司名与板块，添加后进入研究更新。此功能不等于全市场扫描。
