@@ -1,15 +1,24 @@
 # US Opportunity Engine · v1.0.2
 
-一个本地运行、证据优先、AI 独立的美股事件研究与决策工作区。根据 `requirements/us-opportunity-engine-commercial-v1.0.2-consolidated/` 实现。
+一个在本机运行的美股事件研究工具：归档 SEC 披露，提取可核对的事实，结合规则和可用行情跟踪事件影响。可以先用隔离的合成数据体验，再配置自己的数据源研究关注股票。
 
-**当前交付：可运行的本地工程版本，不是 Commercial V1 上线认证。** 合成演示与真实数据分库；真实交易接口关闭。完整范围及未完成的生产能力见 [实现覆盖表](docs/IMPLEMENTATION.md)。
+**当前状态：个人研究版本。** 首页只展示仍有效的偏多（红色）和偏空（绿色）线索；证据不足、分歧及历史判断保留在研究动态中。方向规则尚未经过收益效果验证，真实交易关闭。项目目前跟踪用户添加的股票，尚不扫描全市场。
+
+## 界面预览
+
+以下截图来自真实只读研究工作区的历史界面，股票披露来自公开 SEC 数据；截图中的方向和数量仅反映拍摄时的状态，不是实时结果或买卖建议。
+
+| 今日概览 | 研究动态 | 机会研究 |
+|---|---|---|
+| ![今日概览：红绿方向与空状态](docs/screenshots/today.jpg) | ![研究动态：披露与待复核事实](docs/screenshots/research.jpg) | ![机会研究：简洁卡片与可展开依据](docs/screenshots/opportunity.jpg) |
 
 ## 启动
 
 基础演示只需 Python **3.11+**，不依赖 npm、LLM 或数据库服务器。完整行情日历和 WebSocket 使用 `requirements-integrations.txt` 中的可选依赖，见 [集成指南](docs/INTEGRATIONS.md)。
 
 ```bash
-cd /Users/goterra/Documents/digitIntel
+git clone https://github.com/coverme128/digitIntel.git
+cd digitIntel
 python3 -m usoe --demo
 ```
 
@@ -17,9 +26,10 @@ python3 -m usoe --demo
 
 演示工作区使用**全部虚构**的 `.D` 公司、价格与事实，固定回放时点为 `2026-09-25 11:30 America/New_York`，便于重复演示。默认包含 READY、WATCH、反应过度、失效、融资风险与并购背景案例。数据落在 `data/demo.sqlite3`，刷新和重启不会丢失。
 
-真实只读研究工作区：
+真实只读研究工作区需要先设置 SEC 联系信息。把 `.env.example` 复制为 `.env`，填写自己的 `SEC_USER_AGENT`；DeepSeek 和 Massive 的 Key 按需配置。`.env` 和本地数据库已被 Git 忽略。
 
 ```bash
+cp .env.example .env
 python3 -m usoe --port 8788
 ```
 
@@ -38,7 +48,7 @@ python3 -m usoe --port 8788
 
 ## 数据源配置
 
-本地 `.env` 已配置本次提供的 SEC 联系信息，已被 `.gitignore` 排除，不应提交或分享。示例格式见 `.env.example`。**程序从不在界面或日志输出联系邮箱、API key、券商账号。** 修改配置后重启进程。
+在本机 `.env` 配置数据源，示例格式见 [`.env.example`](.env.example)。不要提交、分享或粘贴真实 Key。修改配置后重启进程。
 
 ```dotenv
 SEC_USER_AGENT=USOpportunityEngine/1.0 contact your-email@example.com
@@ -114,10 +124,14 @@ python3 scripts/manage.py --db data/demo.sqlite3 backup /tmp/usoe-backup.sqlite3
 
 ## 个人研究与 DeepSeek
 
-真实工作区由“今日概览 → 研究动态 → 机会研究”组织：概览展示方向摘要与待办，研究动态（原每日研究）负责披露和事实核对，机会研究持续跟踪完整依据与失效条件。不接 IBKR 也能选择关注股票和事件、复核 AI 候选及查看本机提醒。DeepSeek 提取和解释独立于核心规则，Key 配置在本机 `.env`，AI Assist 和自动提取分别控制。真实案例验收暂后置。
+真实工作区由“今日概览 → 研究动态 → 机会研究”组织：概览展示红绿方向线索，研究动态负责披露和事实核对，机会研究持续跟踪完整依据与失效条件。不接 IBKR 也能添加关注股票、复核 AI 候选及查看本机提醒。DeepSeek 提取和解释独立于核心规则，AI Assist 和自动提取分别控制。
 
 完整使用流程、模型配置、SEC 展品、人工核对与 `--poll-research` 见 [个人研究指南](docs/PERSONAL-RESEARCH.md)。
 
 方向颜色采用红色偏多、绿色偏空、黄色分歧、灰色证据不足或历史/失效；保留文字和复核状态。颜色用于研究筛选，不等于买入指令。当前判断规则未经过历史效果校准；真实行情访问仍受订阅权限限制，见 [Massive 实际接口验证](docs/MASSIVE-LIVE-VALIDATION.md)。
 
 首页仅展示有效红色偏多、绿色偏空线索，无结果显示“暂无明确方向线索”；分歧与证据不足保留在研究动态中。首页和观察列表可添加关注股票，当前需填写 ticker、SEC CIK、公司名与板块，添加后进入研究更新。此功能不等于全市场扫描。
+
+## 开源与参与
+
+代码和仓库内的需求文档按 [MIT License](LICENSE) 发布。欢迎提交 issue 或 pull request；请附上复现步骤与相关测试，不要在日志、截图或测试数据里包含真实凭证和个人账户信息。运行前请阅读 [个人研究指南](docs/PERSONAL-RESEARCH.md) 和 [实现范围](docs/IMPLEMENTATION.md)。
